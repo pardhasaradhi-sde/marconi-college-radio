@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { authService } from '../services/appwrite';
 
 export interface User {
   id: string;
@@ -10,7 +11,8 @@ export interface User {
 
 interface AuthContextType {
   user: User | null;
-  login: (email: string) => Promise<boolean>;
+  login: (email: string, password: string) => Promise<boolean>;
+  register: (email: string, password: string, name: string) => Promise<boolean>;
   logout: () => void;
   isLoading: boolean;
 }
@@ -21,45 +23,116 @@ interface AuthProviderProps {
   children: ReactNode;
 }
 
+// List of admin gmails
+const ADMIN_GMAILS = [
+  'admin@anurag.edu.in',
+  'admin2@gmail.com',
+  // Add more admin gmails here
+];
+
 export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-
   useEffect(() => {
-    // Check for existing session
-    const savedUser = localStorage.getItem('marconi-user');
-    if (savedUser) {
-      setUser(JSON.parse(savedUser));
-    }
-    setIsLoading(false);
-  }, []);
-
-  const login = async (email: string): Promise<boolean> => {
-    // Simulate OAuth validation
-    if (!email.endsWith('@anurag.edu.in')) {
-      return false;
-    }
-
-    const newUser: User = {
-      id: Date.now().toString(),
-      email,
-      name: email.split('@')[0].replace('.', ' ').replace(/\b\w/g, l => l.toUpperCase()),
-      role: email.startsWith('admin') ? 'admin' : 'user',
-      sessions: [Date.now().toString()]
+    // Check for existing session with Appwrite
+    const checkUser = async () => {
+      try {
+        const appwriteUser = await authService.getCurrentUser();
+        if (appwriteUser) {
+          const user: User = {
+            id: appwriteUser.$id,
+            email: appwriteUser.email,
+            name: appwriteUser.name,
+            role: ADMIN_GMAILS.includes(appwriteUser.email) ? 'admin' : 'user',
+            sessions: ['current']
+          };
+          setUser(user);
+        }
+      } catch (error) {
+        console.error('Session check failed:', error);
+      } finally {
+        setIsLoading(false);
+      }
     };
 
-    setUser(newUser);
-    localStorage.setItem('marconi-user', JSON.stringify(newUser));
-    return true;
+    checkUser();
+  }, []);
+
+  const login = async (email: string, password: string): Promise<boolean> => {
+    try {
+      setIsLoading(true);
+      // Validate AU email or admin
+      if (!email.endsWith('@anurag.edu.in') && !ADMIN_GMAILS.includes(email)) {
+        setUser(null);
+        return false;
+      }
+      const session = await authService.login(email, password);
+      const appwriteUser = await authService.getCurrentUser();
+      if (appwriteUser) {
+        const newUser: User = {
+          id: appwriteUser.$id,
+          email: appwriteUser.email,
+          name: appwriteUser.name,
+          role: ADMIN_GMAILS.includes(appwriteUser.email) ? 'admin' : 'user',
+          sessions: [session.$id]
+        };
+        setUser(newUser);
+        return true;
+      }
+      setUser(null);
+      return false;
+    } catch (error) {
+      setUser(null);
+      console.error('Login error:', error);
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const logout = () => {
-    setUser(null);
-    localStorage.removeItem('marconi-user');
+  const register = async (email: string, password: string, name: string): Promise<boolean> => {
+    try {
+      setIsLoading(true);
+      // Validate AU email or admin
+      if (!email.endsWith('@anurag.edu.in') && !ADMIN_GMAILS.includes(email)) {
+        setUser(null);
+        return false;
+      }
+      await authService.register(email, password, name);
+      const appwriteUser = await authService.getCurrentUser();
+      if (appwriteUser) {
+        const newUser: User = {
+          id: appwriteUser.$id,
+          email: appwriteUser.email,
+          name: appwriteUser.name,
+          role: ADMIN_GMAILS.includes(appwriteUser.email) ? 'admin' : 'user',
+          sessions: ['current']
+        };
+        setUser(newUser);
+        return true;
+      }
+      setUser(null);
+      return false;
+    } catch (error) {
+      setUser(null);
+      console.error('Registration error:', error);
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
   };
 
+  const logout = async () => {
+    try {
+      await authService.logout();
+      setUser(null);
+    } catch (error) {
+      console.error('Logout error:', error);
+      setUser(null); // Force logout even if Appwrite call fails
+    }
+  };
   return (
-    <AuthContext.Provider value={{ user, login, logout, isLoading }}>
+    <AuthContext.Provider value={{ user, login, register, logout, isLoading }}>
       {children}
     </AuthContext.Provider>
   );

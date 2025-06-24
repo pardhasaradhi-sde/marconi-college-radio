@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { StreamProvider } from './contexts/StreamContext';
+import { RadioProvider } from './contexts/RadioContext';
 import { Navbar } from './components/layout/Navbar';
 import { LandingPage } from './components/LandingPage';
 import { LoginModal } from './components/auth/LoginModal';
@@ -10,6 +11,15 @@ import { AdminDashboard } from './components/admin/AdminDashboard';
 function AppContent() {
   const { user, isLoading } = useAuth();
   const [showLoginModal, setShowLoginModal] = useState(false);
+
+  // Redirect logic for admin/user
+  useEffect(() => {
+    if (user && user.role === 'admin') {
+      window.history.replaceState({}, '', '/admin');
+    } else if (user && user.role === 'user') {
+      window.history.replaceState({}, '', '/dashboard');
+    }
+  }, [user]);
 
   const handleGetStart = () => {
     if (user) {
@@ -42,7 +52,6 @@ function AppContent() {
       </>
     );
   }
-
   return (
     <>
       <Navbar />
@@ -54,9 +63,11 @@ function AppContent() {
 function App() {
   return (
     <AuthProvider>
-      <StreamProvider>
-        <AppContent />
-      </StreamProvider>
+      <RadioProvider>
+        <StreamProvider>
+          <AppContent />
+        </StreamProvider>
+      </RadioProvider>
     </AuthProvider>
   );
 }

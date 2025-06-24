@@ -1,0 +1,125 @@
+{
+  "projectId": "685ad71b00296d6597db",
+  "projectName": "Marconi-Radio-club",
+  "databases": [
+    {
+      "databaseId": "685ad7ef00079b186d6e",
+      "name": "Marconi Database",
+      "collections": [
+        {
+          "collectionId": "radio_state",
+          "name": "Radio State",
+          "permissions": [
+            "read(\"any\")",
+            "create(\"users\")",
+            "update(\"users\")",
+            "delete(\"users\")"
+          ],
+          "documentSecurity": false,
+          "enabled": true,
+          "attributes": [
+            {
+              "key": "isPlaying",
+              "type": "boolean",
+              "required": true,
+              "default": false
+            },
+            {
+              "key": "currentTime",
+              "type": "double",
+              "required": true,
+              "default": 0
+            },
+            {
+              "key": "timestamp",
+              "type": "string",
+              "size": 255,
+              "required": true
+            },
+            {
+              "key": "currentTrack",
+              "type": "string",
+              "size": 2000,
+              "required": false
+            }
+          ]
+        },
+        {
+          "collectionId": "audio_files",
+          "name": "Audio Files",
+          "permissions": [
+            "read(\"any\")",
+            "create(\"users\")",
+            "update(\"users\")",
+            "delete(\"users\")"
+          ],
+          "documentSecurity": false,
+          "enabled": true,
+          "attributes": [
+            {
+              "key": "fileName",
+              "type": "string",
+              "size": 255,
+              "required": true
+            },
+            {
+              "key": "fileId",
+              "type": "string",
+              "size": 255,
+              "required": true
+            },
+            {
+              "key": "fileUrl",
+              "type": "string",
+              "size": 500,
+              "required": true
+            },
+            {
+              "key": "duration",
+              "type": "double",
+              "required": true,
+              "default": 0
+            },
+            {
+              "key": "uploadedBy",
+              "type": "string",
+              "size": 255,
+              "required": true
+            },
+            {
+              "key": "uploadedAt",
+              "type": "string",
+              "size": 255,
+              "required": true
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "buckets": [
+    {
+      "bucketId": "audio_files",
+      "name": "Audio Files",
+      "permissions": [
+        "read(\"any\")",
+        "create(\"users\")",
+        "update(\"users\")",
+        "delete(\"users\")"
+      ],
+      "fileSecurity": false,
+      "enabled": true,
+      "maximumFileSize": 52428800,
+      "allowedFileExtensions": [
+        "mp3",
+        "wav",
+        "m4a",
+        "aac",
+        "ogg"
+      ],
+      "compression": "none",
+      "encryption": true,
+      "antivirus": true
+    }
+  ]
+}
