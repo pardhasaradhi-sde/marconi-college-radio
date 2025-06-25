@@ -6,6 +6,8 @@ import {
 } from 'lucide-react';
 import { useRadio } from '../../contexts/RadioContext';
 
+let globalAudio: HTMLAudioElement | null = null;
+
 export function StreamPlayer() {
   const { radioState, isLoading } = useRadio();
   const [volume, setVolume] = useState(50);
@@ -14,6 +16,7 @@ export function StreamPlayer() {
   const [duration, setDuration] = useState(0);
   const [reactions, setReactions] = useState({ hearts: 247, comments: 89, shares: 34 });
   const [isLiked, setIsLiked] = useState(false);
+  const [isUserPaused, setIsUserPaused] = useState(false);
   const audioRef = useRef<HTMLAudioElement>(null);
 
   const currentTrack = radioState?.currentTrack;
@@ -22,17 +25,20 @@ export function StreamPlayer() {
   // Update audio element when radio state changes
   useEffect(() => {
     if (audioRef.current && currentTrack) {
-      audioRef.current.src = currentTrack.fileUrl;
-      audioRef.current.currentTime = radioState?.currentTime || 0;
-      audioRef.current.loop = true; // Enable looping
-      
-      if (isPlaying) {
-        audioRef.current.play().catch(console.error);
+      if (audioRef.current.src !== currentTrack.fileUrl) {
+        audioRef.current.src = currentTrack.fileUrl;
+      }
+      audioRef.current.loop = true;
+      if (!isUserPaused) {
+        if (Math.abs((audioRef.current.currentTime || 0) - (radioState?.currentTime || 0)) > 1) {
+          audioRef.current.currentTime = radioState?.currentTime || 0;
+        }
+        audioRef.current.play().catch(() => {});
       } else {
         audioRef.current.pause();
       }
     }
-  }, [currentTrack, isPlaying, radioState?.currentTime]);
+  }, [currentTrack, isPlaying, radioState?.currentTime, isUserPaused]);
 
   // Update time and duration
   useEffect(() => {
@@ -85,12 +91,42 @@ export function StreamPlayer() {
     }
   };
 
+  const handlePause = () => {
+    setIsUserPaused(true);
+    if (audioRef.current) audioRef.current.pause();
+  };
+
+  const handleResume = () => {
+    setIsUserPaused(false);
+    if (audioRef.current) {
+      audioRef.current.currentTime = radioState?.currentTime || 0;
+      audioRef.current.play().catch(() => {});
+    }
+  };
+
   const formatTime = (seconds: number) => {
     if (isNaN(seconds)) return '0:00';
     const mins = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
+
+  // Initialize global audio object
+  useEffect(() => {
+    if (!globalAudio) {
+      globalAudio = new window.Audio();
+      globalAudio.className = 'hidden';
+    }
+    audioRef.current = globalAudio;
+    // Attach to DOM if not already
+    if (!document.body.contains(globalAudio)) {
+      globalAudio.style.display = 'none';
+      document.body.appendChild(globalAudio);
+    }
+    return () => {
+      // Do not remove globalAudio on unmount
+    };
+  }, []);
 
   if (isLoading) {
     return (
@@ -197,11 +233,8 @@ export function StreamPlayer() {
                   min="0"
                   max={duration || 0}
                   value={currentTime}
-                  onChange={handleSeek}
-                  className="w-full h-2 bg-white/20 rounded-lg appearance-none cursor-pointer slider"
-                  style={{
-                    background: `linear-gradient(to right, #8B5CF6 0%, #8B5CF6 ${(currentTime / (duration || 1)) * 100}%, rgba(255,255,255,0.2) ${(currentTime / (duration || 1)) * 100}%, rgba(255,255,255,0.2) 100%)`
-                  }}
+                  disabled
+                  className="w-full h-2 bg-white/20 rounded-lg appearance-none cursor-not-allowed slider opacity-50"
                 />
               </div>
               <span className="w-12">{formatTime(duration)}</span>
@@ -286,20 +319,8 @@ export function StreamPlayer() {
       </motion.div>
 
       {/* Hidden Audio Element */}
-      <audio
-        ref={audioRef}
-        className="hidden"
-        onLoadedMetadata={() => {
-          if (audioRef.current) {
-            setDuration(audioRef.current.duration);
-          }
-        }}
-        onTimeUpdate={() => {
-          if (audioRef.current) {
-            setCurrentTime(audioRef.current.currentTime);
-          }
-        }}
-      />
+
+
     </div>
   );
 }
