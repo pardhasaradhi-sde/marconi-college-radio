@@ -57,3 +57,239 @@
 .slider:hover::-moz-range-thumb {
   opacity: 1;
 }
+
+/* Quantum gradient animations for the orb */
+@keyframes quantum-gradient-shift {
+  0% { background-position: 0% 50%; }
+  25% { background-position: 100% 50%; }
+  50% { background-position: 100% 100%; }
+  75% { background-position: 0% 100%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes quantum-pulse {
+  0%, 100% { 
+    transform: scale(1);
+    opacity: 0.8;
+  }
+  50% { 
+    transform: scale(1.05);
+    opacity: 1;
+  }
+}
+
+@keyframes quantum-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes quantum-float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+}
+
+.quantum-gradient {
+  background-size: 400% 400%;
+  animation: quantum-gradient-shift 4s ease infinite;
+}
+
+/* Enhanced liquid glass effect styles */
+.liquid-glass {
+  backdrop-filter: blur(20px);
+  background: linear-gradient(135deg, 
+    rgba(255, 255, 255, 0.1) 0%,
+    rgba(255, 255, 255, 0.05) 50%,
+    rgba(255, 255, 255, 0.1) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 
+    0 20px 40px rgba(0, 0, 0, 0.3),
+    0 10px 20px rgba(0, 0, 0, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.1);
+}
+
+.liquid-glass-hover {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.liquid-glass-hover:hover {
+  background: linear-gradient(135deg, 
+    rgba(255, 255, 255, 0.15) 0%,
+    rgba(255, 255, 255, 0.08) 50%,
+    rgba(255, 255, 255, 0.15) 100%);
+  border-color: rgba(255, 255, 255, 0.3);
+  box-shadow: 
+    0 25px 50px rgba(0, 0, 0, 0.4),
+    0 15px 30px rgba(0, 0, 0, 0.25),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.15);
+}
+
+@keyframes liquid-shimmer {
+  0% { transform: translateX(-100%) translateY(-100%) rotate(30deg); }
+  100% { transform: translateX(100%) translateY(100%) rotate(30deg); }
+}
+
+.liquid-shimmer::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(45deg, 
+    transparent 30%, 
+    rgba(255, 255, 255, 0.2) 50%, 
+    transparent 70%);
+  animation: liquid-shimmer 3s ease-in-out infinite;
+  pointer-events: none;
+}
+
+/* Floating animation for glass panels */
+@keyframes float-gentle {
+  0%, 100% { 
+    transform: translateY(0px) scale(1);
+  }
+  50% { 
+    transform: translateY(-5px) scale(1.005);
+  }
+}
+
+.float-gentle {
+  animation: float-gentle 6s ease-in-out infinite;
+}
+
+/* Layout stability utilities to prevent page size changes */
+.orb-container {
+  contain: strict;
+  position: relative;
+  overflow: hidden;
+  transform: translateZ(0);
+  will-change: auto;
+  isolation: isolate;
+}
+
+.orb-contained-animation {
+  contain: layout style paint;
+  transform-origin: center center;
+  backface-visibility: hidden;
+  perspective: 1000px;
+  transform: translateZ(0);
+}
+
+/* Ensure animations stay within bounds */
+.animation-bounded {
+  max-width: 100%;
+  max-height: 100%;
+  overflow: hidden;
+  box-sizing: border-box;
+  contain: layout style;
+}
+
+/* Prevent layout shifts during scale animations */
+.scale-contained {
+  transform-box: border-box;
+  transform-origin: center center;
+  contain: layout;
+}
+
+/* Absolute layout isolation for orb */
+.no-layout-shift {
+  contain: layout style paint;
+  will-change: auto;
+  transform-box: border-box;
+  transform-origin: center center;
+  backface-visibility: hidden;
+}
+
+/* Prevent any layout shifts during animations */
+.no-layout-shift * {
+  contain: layout;
+  box-sizing: border-box;
+}
+
+/* Perfect centering utilities for the orb */
+.orb-center-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: calc(100vh - 4rem);
+  width: 100%;
+  position: relative;
+  padding: 0;
+  margin-top: -2rem;
+}
+
+.orb-center-absolute {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+}
+
+.orb-perfect-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  place-items: center;
+  place-content: center;
+  margin: 0 auto;
+  transform-origin: center center;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+/* Ensure the orb stays centered on all screen sizes */
+@media (max-width: 768px) {
+  .orb-center-container {
+    min-height: calc(100vh - 16rem);
+    padding: 0;
+    margin-top: 0;
+  }
+  
+  .orb-center-absolute,
+  .orb-perfect-center {
+    top: 55vh !important; /* Move down to 55% of viewport height */
+    left: 50vw !important;
+    transform: translate(-50%, -50%) !important;
+  }
+}
+
+/* Fine-tune for smaller mobile screens */
+@media (max-width: 480px) {
+  .orb-center-absolute,
+  .orb-perfect-center {
+    top: 52vh !important; /* Slightly higher on very small screens */
+  }
+}
+
+/* Adjust for very tall screens */
+@media (max-width: 768px) and (min-height: 800px) {
+  .orb-center-absolute,
+  .orb-perfect-center {
+    top: 57vh !important; /* Lower on taller screens */
+  }
+}
+
+/* Specific adjustment for common mobile heights */
+@media (max-width: 768px) and (max-height: 700px) {
+  .orb-center-absolute,
+  .orb-perfect-center {
+    top: 50vh !important; /* Center on shorter screens */
+  }
+}
+
+@media (min-width: 769px) {
+  .orb-center-absolute,
+  .orb-perfect-center {
+    top: calc(50vh + 1rem);
+    left: 50vw;
+    transform: translate(-50%, -50%);
+  }
+}
