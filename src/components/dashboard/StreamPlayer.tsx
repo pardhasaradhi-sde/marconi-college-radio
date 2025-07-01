@@ -1,139 +1,146 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { 
-  Volume2, VolumeX, 
-  Heart, MessageCircle, Share2, Radio, Repeat, Clock
-} from 'lucide-react';
+import { Radio, Play, Pause } from 'lucide-react';
 import { useRadio } from '../../contexts/RadioContext';
-
-let globalAudio: HTMLAudioElement | null = null;
+import { radioService } from '../../services/appwrite';
 
 export function StreamPlayer() {
   const { radioState, isLoading } = useRadio();
-  const [volume, setVolume] = useState(50);
-  const [isMuted, setIsMuted] = useState(false);
-  const [currentTime, setCurrentTime] = useState(0);
-  const [duration, setDuration] = useState(0);
-  const [reactions, setReactions] = useState({ hearts: 247, comments: 89, shares: 34 });
-  const [isLiked, setIsLiked] = useState(false);
+  const [volume] = useState(50);
   const [isUserPaused, setIsUserPaused] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
   const audioRef = useRef<HTMLAudioElement>(null);
+  const syncIntervalRef = useRef<number | null>(null);
 
   const currentTrack = radioState?.currentTrack;
-  const isPlaying = radioState?.isPlaying || false;
+  const isBroadcastActive = radioState?.isPlaying && currentTrack;
 
-  // Update audio element when radio state changes
+  // Calculate current broadcast position based on time elapsed since broadcast started
+  const calculateCurrentPosition = (): number => {
+    const actualDuration = audioRef.current?.duration;
+    const databaseDuration = currentTrack?.duration || 0;
+    
+    const validDuration = (actualDuration && !isNaN(actualDuration) && actualDuration > 0) 
+      ? actualDuration 
+      : (databaseDuration > 0 ? databaseDuration : 0);
+    
+    if (!validDuration || !isBroadcastActive) {
+      return 0;
+    }
+
+    if (radioState?.isScheduled && radioState.scheduledStartTime) {
+      const position = radioService.calculateBroadcastPosition(
+        radioState.scheduledStartTime,
+        validDuration
+      );
+      return position;
+    }
+
+    const startTime = radioState?.broadcastStartTime || 
+                     (radioState?.isPlaying ? radioState?.timestamp : null);
+    
+    if (!startTime) {
+      return radioState?.currentTime || 0;
+    }
+    
+    const position = radioService.calculateBroadcastPosition(
+      startTime,
+      validDuration
+    );
+    
+    return position;
+  };
+
+  // Sync audio position with calculated broadcast position
+  const syncAudioPosition = () => {
+    if (!audioRef.current || !isBroadcastActive || isUserPaused) return;
+
+    if (audioRef.current.readyState < 2) {
+      return;
+    }
+
+    const targetPosition = calculateCurrentPosition();
+    
+    if (targetPosition === 0 && (!audioRef.current.duration || isNaN(audioRef.current.duration))) {
+      return;
+    }
+
+    const currentAudioPosition = audioRef.current.currentTime || 0;
+    const difference = Math.abs(targetPosition - currentAudioPosition);
+
+    if (difference > 2) {
+      audioRef.current.currentTime = targetPosition;
+      console.log(`🔄 Synced audio: ${targetPosition.toFixed(1)}s (diff: ${difference.toFixed(1)}s)`);
+    }
+  };
+
+  // Sync on mount and when track changes
   useEffect(() => {
-    if (audioRef.current && currentTrack) {
-      if (audioRef.current.src !== currentTrack.fileUrl) {
-        audioRef.current.src = currentTrack.fileUrl;
-      }
-      audioRef.current.loop = true;
-      if (!isUserPaused) {
-        if (Math.abs((audioRef.current.currentTime || 0) - (radioState?.currentTime || 0)) > 1) {
-          audioRef.current.currentTime = radioState?.currentTime || 0;
-        }
-        audioRef.current.play().catch(() => {});
-      } else {
+    if (!isBroadcastActive || isUserPaused) {
+      setIsPlaying(false);
+      if (audioRef.current) {
         audioRef.current.pause();
       }
+      if (syncIntervalRef.current) {
+        clearInterval(syncIntervalRef.current);
+        syncIntervalRef.current = null;
+      }
+      return;
     }
-  }, [currentTrack, isPlaying, radioState?.currentTime, isUserPaused]);
 
-  // Update time and duration
-  useEffect(() => {
-    const audio = audioRef.current;
-    if (!audio) return;
+    if (audioRef.current && currentTrack) {
+      const audioSrc = currentTrack.fileUrl;
+      if (audioRef.current.src !== audioSrc) {
+        audioRef.current.src = audioSrc;
+        audioRef.current.load();
+      }
 
-    const updateTime = () => setCurrentTime(audio.currentTime);
-    const updateDuration = () => setDuration(audio.duration);
+      const handleCanPlay = () => {
+        if (audioRef.current && !isUserPaused) {
+          syncAudioPosition();
+          audioRef.current.play().then(() => {
+            setIsPlaying(true);
+          }).catch(console.error);
+        }
+      };
 
-    audio.addEventListener('timeupdate', updateTime);
-    audio.addEventListener('loadedmetadata', updateDuration);
-    audio.addEventListener('ended', () => {
-      // The loop attribute will handle replay automatically
-      setCurrentTime(0);
-    });
+      audioRef.current.addEventListener('canplay', handleCanPlay);
+      
+      syncIntervalRef.current = setInterval(syncAudioPosition, 5000);
 
-    return () => {
-      audio.removeEventListener('timeupdate', updateTime);
-      audio.removeEventListener('loadedmetadata', updateDuration);
-    };
-  }, [currentTrack]);
-
-  const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newVolume = parseInt(e.target.value);
-    setVolume(newVolume);
-    setIsMuted(newVolume === 0);
-    
-    if (audioRef.current) {
-      audioRef.current.volume = newVolume / 100;
+      return () => {
+        if (audioRef.current) {
+          audioRef.current.removeEventListener('canplay', handleCanPlay);
+        }
+        if (syncIntervalRef.current) {
+          clearInterval(syncIntervalRef.current);
+          syncIntervalRef.current = null;
+        }
+      };
     }
-  };
-
-  const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newTime = parseInt(e.target.value);
-    setCurrentTime(newTime);
-    
-    if (audioRef.current) {
-      audioRef.current.currentTime = newTime;
-    }
-  };
-
-  const handleReaction = (type: 'hearts' | 'comments' | 'shares') => {
-    setReactions(prev => ({
-      ...prev,
-      [type]: prev[type] + 1
-    }));
-    
-    if (type === 'hearts') {
-      setIsLiked(!isLiked);
-    }
-  };
+  }, [currentTrack, isBroadcastActive, isUserPaused]);
 
   const handlePause = () => {
     setIsUserPaused(true);
+    setIsPlaying(false);
     if (audioRef.current) audioRef.current.pause();
   };
 
   const handleResume = () => {
     setIsUserPaused(false);
-    if (audioRef.current) {
-      audioRef.current.currentTime = radioState?.currentTime || 0;
-      audioRef.current.play().catch(() => {});
+    if (isBroadcastActive && audioRef.current) {
+      syncAudioPosition();
+      audioRef.current.play().then(() => {
+        setIsPlaying(true);
+      }).catch(console.error);
     }
   };
-
-  const formatTime = (seconds: number) => {
-    if (isNaN(seconds)) return '0:00';
-    const mins = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
-  };
-
-  // Initialize global audio object
-  useEffect(() => {
-    if (!globalAudio) {
-      globalAudio = new window.Audio();
-      globalAudio.className = 'hidden';
-    }
-    audioRef.current = globalAudio;
-    // Attach to DOM if not already
-    if (!document.body.contains(globalAudio)) {
-      globalAudio.style.display = 'none';
-      document.body.appendChild(globalAudio);
-    }
-    return () => {
-      // Do not remove globalAudio on unmount
-    };
-  }, []);
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-[70vh]">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-accent-500 mx-auto mb-4"></div>
-          <p className="text-white/60 font-body">Loading stream...</p>
+      <div className="flex flex-col items-center justify-center py-20">
+        <div className="w-64 h-64 rounded-full bg-gradient-to-br from-purple-600/20 to-blue-600/20 backdrop-blur-sm border border-white/10 flex items-center justify-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white"></div>
         </div>
       </div>
     );
@@ -141,186 +148,385 @@ export function StreamPlayer() {
 
   if (!currentTrack) {
     return (
-      <div className="flex items-center justify-center min-h-[70vh]">
-        <div className="text-center max-w-md mx-auto px-6">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="mb-8"
-          >
-            <div className="w-32 h-32 bg-white/5 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-2xl">
-              <Radio className="h-16 w-16 text-white/40" />
-            </div>
-            <h3 className="text-3xl font-heading font-bold text-white mb-4">
-              Welcome to Marconi Radio
-            </h3>
-            <p className="text-white/60 font-body text-lg">
-              No music is currently playing. Admins can start the broadcast from their dashboard.
-            </p>
-          </motion.div>
-        </div>
-      </div>
-    );
-  }  return (
-    <div className="min-h-[calc(100vh-120px)] flex items-center justify-center p-4 md:p-6">
-      {/* Boxed Container */}
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95, y: 20 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        className="w-full max-w-5xl bg-gradient-to-br from-dark-800/95 to-dark-900/95 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/10 overflow-hidden"
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.8 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="flex items-center justify-center min-h-screen"
       >
-        {/* Main Player Content */}
-        <div className="flex flex-col items-center text-center p-6 md:p-10">        {/* Large Album Art */}
-        <div className="w-72 h-72 md:w-80 md:h-80 bg-white/5 rounded-3xl overflow-hidden shadow-2xl mb-6 relative group">
-          {currentTrack.coverImageUrl ? (
-            <img
-              src={currentTrack.coverImageUrl}
-              alt={currentTrack.songName}
-              className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-            />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary-800/50 to-accent-800/50">
-              <Radio className="h-20 w-20 text-white/40" />
-            </div>
-          )}
+        {/* Inactive Orb */}
+        <div className="relative">
+          <motion.div
+            animate={{
+              scale: [1, 1.02, 1],
+              opacity: [0.4, 0.6, 0.4],
+            }}
+            transition={{
+              duration: 3,
+              repeat: Infinity,
+              ease: "easeInOut"
+            }}
+            className="absolute inset-0 w-96 h-96 rounded-full bg-gradient-to-r from-gray-500/20 to-gray-700/20 blur-3xl"
+          />
           
-          {/* Live Indicator Overlay */}
-          <div className="absolute top-4 right-4 flex items-center gap-2 px-3 py-1 bg-red-500/90 rounded-full backdrop-blur-sm">
-            <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
-            <span className="text-white text-sm font-medium">LIVE</span>
+          <div className="relative w-80 h-80 rounded-full bg-gradient-to-br from-gray-600/30 to-gray-800/30 backdrop-blur-sm border border-gray-500/30 flex items-center justify-center shadow-2xl">
+            <Radio className="h-20 w-20 text-gray-400" />
           </div>
         </div>
+      </motion.div>
+    );
+  }
 
-        {/* Track Info */}
-        <div className="mb-6 w-full">
-          <h1 className="text-3xl md:text-4xl font-heading font-bold text-white mb-2 leading-tight">
-            {currentTrack.songName || currentTrack.fileName}
-          </h1>
-          <p className="text-xl md:text-2xl text-white/70 font-body mb-4">
-            {currentTrack.artist || 'Unknown Artist'}
-          </p>          
-          {/* Status Indicators */}
-          <div className="flex items-center justify-center gap-4 mb-4">
-            <div className={`flex items-center gap-2 px-3 py-1 rounded-full text-sm ${
-              isPlaying ? 'bg-green-500/20 text-green-400' : 'bg-yellow-500/20 text-yellow-400'
-            }`}>
-              <div className={`w-2 h-2 rounded-full ${
-                isPlaying ? 'bg-green-400 animate-pulse' : 'bg-yellow-400'
-              }`}></div>
-              <span className="font-medium">
-                {isPlaying ? 'Playing' : 'Paused'}
-              </span>
-            </div>
-            
-            <div className="flex items-center gap-2 text-accent-400 text-sm">
-              <Repeat className="h-4 w-4" />
-              <span>Loop</span>
-            </div>
-            
-            <div className="flex items-center gap-2 text-white/60 text-sm">
-              <Clock className="h-4 w-4" />
-              <span>Auto-loop</span>
-            </div>
-          </div>
+  return (
+    <div className="flex items-center justify-center min-h-[80vh]">
+      {/* Ultra Advanced Orb Container */}
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.3, rotate: -180 }}
+        animate={{ opacity: 1, scale: 1, rotate: 0 }}
+        transition={{ duration: 2, ease: "easeOut" }}
+        className="relative"
+      >
+        {/* Quantum Particle Ring System */}
+        {Array.from({ length: 16 }).map((_, i) => (
+          <motion.div
+            key={`particle-${i}`}
+            className="absolute w-1.5 h-1.5 rounded-full"
+            style={{
+              left: '50%',
+              top: '50%',
+              background: `linear-gradient(45deg, 
+                hsl(${260 + i * 15}, 80%, 70%), 
+                hsl(${200 + i * 10}, 90%, 80%))`,
+              filter: 'blur(0.5px)',
+            }}
+            animate={{
+              x: [0, Math.cos(i * (360/16) * Math.PI / 180) * (250 + Math.sin(Date.now() * 0.001 + i) * 50)],
+              y: [0, Math.sin(i * (360/16) * Math.PI / 180) * (250 + Math.cos(Date.now() * 0.001 + i) * 50)],
+              scale: [0.3, 1.5, 0.3],
+              opacity: [0.2, 1, 0.2],
+              rotate: [0, 360],
+            }}
+            transition={{
+              duration: 3 + i * 0.2,
+              repeat: Infinity,
+              ease: "easeInOut",
+              delay: i * 0.1,
+            }}
+          />
+        ))}
 
-          {/* Progress Bar */}
-          <div className="w-full max-w-lg mx-auto mb-4">
-            <div className="flex items-center gap-4 text-sm text-white/60 mb-2">
-              <span className="w-12 text-right">{formatTime(currentTime)}</span>
-              <div className="flex-1 relative">
-                <input
-                  type="range"
-                  min="0"
-                  max={duration || 0}
-                  value={currentTime}
-                  disabled
-                  className="w-full h-2 bg-white/20 rounded-lg appearance-none cursor-not-allowed slider opacity-50"
-                />
-              </div>
-              <span className="w-12">{formatTime(duration)}</span>
-            </div>
-          </div>
-        </div>
+        {/* Floating Energy Spheres */}
+        {isPlaying && Array.from({ length: 6 }).map((_, i) => (
+          <motion.div
+            key={`sphere-${i}`}
+            className="absolute w-3 h-3 rounded-full"
+            style={{
+              background: `radial-gradient(circle, 
+                rgba(168, 85, 247, 0.8), 
+                rgba(59, 130, 246, 0.6),
+                transparent)`,
+              left: '50%',
+              top: '50%',
+            }}
+            animate={{
+              x: [0, Math.cos(i * 60 * Math.PI / 180) * 300, 0],
+              y: [0, Math.sin(i * 60 * Math.PI / 180) * 300, 0],
+              scale: [0, 1.5, 0],
+              opacity: [0, 0.8, 0],
+            }}
+            transition={{
+              duration: 4 + i * 0.5,
+              repeat: Infinity,
+              ease: "easeInOut",
+              delay: i * 0.8,
+            }}
+          />
+        ))}
 
-        {/* Bottom Controls */}
-        <div className="flex items-center justify-between w-full max-w-2xl gap-6">
-          {/* Social Actions */}
-          <div className="flex items-center gap-2">
-            <motion.button
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.9 }}
-              onClick={() => handleReaction('hearts')}
-              className={`flex items-center gap-2 px-3 py-2 rounded-full transition-all ${
-                isLiked 
-                  ? 'bg-red-500/20 text-red-400' 
-                  : 'bg-white/5 text-white/60 hover:text-red-400 hover:bg-red-500/10'
-              }`}
-            >
-              <Heart className={`h-4 w-4 ${isLiked ? 'fill-current' : ''}`} />
-              <span className="text-sm font-medium">{reactions.hearts}</span>
-            </motion.button>
-            
-            <motion.button
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.9 }}
-              onClick={() => handleReaction('comments')}
-              className="flex items-center gap-2 px-3 py-2 rounded-full bg-white/5 text-white/60 hover:text-blue-400 hover:bg-blue-500/10 transition-all"
-            >
-              <MessageCircle className="h-4 w-4" />
-              <span className="text-sm font-medium">{reactions.comments}</span>
-            </motion.button>
-            
-            <motion.button
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.9 }}
-              onClick={() => handleReaction('shares')}
-              className="flex items-center gap-2 px-3 py-2 rounded-full bg-white/5 text-white/60 hover:text-green-400 hover:bg-green-500/10 transition-all"
-            >
-              <Share2 className="h-4 w-4" />
-              <span className="text-sm font-medium">{reactions.shares}</span>
-            </motion.button>
-          </div>
+        {/* Quantum Energy Rings */}
+        <motion.div
+          className="absolute inset-0 w-[600px] h-[600px]"
+          style={{ left: '50%', top: '50%', marginLeft: -300, marginTop: -300 }}
+          animate={{ rotate: 360 }}
+          transition={{ duration: 40, repeat: Infinity, ease: "linear" }}
+        >
+          <motion.div
+            className="w-full h-full rounded-full"
+            style={{
+              background: `conic-gradient(from 0deg, 
+                rgba(147, 51, 234, 0.1) 0deg,
+                rgba(59, 130, 246, 0.3) 60deg,
+                rgba(6, 182, 212, 0.2) 120deg,
+                rgba(236, 72, 153, 0.25) 180deg,
+                rgba(168, 85, 247, 0.15) 240deg,
+                rgba(124, 58, 237, 0.3) 300deg,
+                rgba(147, 51, 234, 0.1) 360deg)`,
+              filter: 'blur(3px)',
+            }}
+            animate={{
+              scale: [1, 1.15, 1],
+              opacity: [0.2, 0.7, 0.2],
+            }}
+            transition={{
+              duration: 4,
+              repeat: Infinity,
+              ease: "easeInOut"
+            }}
+          />
+        </motion.div>
 
-          {/* Volume Control */}
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => {
-                setIsMuted(!isMuted);
-                if (audioRef.current) {
-                  audioRef.current.volume = isMuted ? volume / 100 : 0;
-                }
+        {/* Middle Quantum Ring */}
+        <motion.div
+          className="absolute inset-0 w-[450px] h-[450px]"
+          style={{ left: '50%', top: '50%', marginLeft: -225, marginTop: -225 }}
+          animate={{ rotate: -360 }}
+          transition={{ duration: 30, repeat: Infinity, ease: "linear" }}
+        >
+          <motion.div
+            className="w-full h-full rounded-full"
+            style={{
+              background: `conic-gradient(from 90deg, 
+                rgba(59, 130, 246, 0.2) 0deg,
+                rgba(168, 85, 247, 0.35) 90deg,
+                rgba(236, 72, 153, 0.25) 180deg,
+                rgba(6, 182, 212, 0.3) 270deg,
+                rgba(59, 130, 246, 0.2) 360deg)`,
+              filter: 'blur(2px)'
+            }}
+            animate={{
+              scale: [1, 1.12, 1],
+              opacity: [0.3, 0.8, 0.3],
+            }}
+            transition={{
+              duration: 3,
+              repeat: Infinity,
+              ease: "easeInOut",
+              delay: 0.7
+            }}
+          />
+        </motion.div>
+
+        {/* Quantum Ripple Effects */}
+        {isPlaying && Array.from({ length: 8 }).map((_, i) => (
+          <motion.div
+            key={`quantum-ripple-${i}`}
+            className="absolute rounded-full border"
+            style={{
+              width: `${350 + i * 60}px`,
+              height: `${350 + i * 60}px`,
+              left: '50%',
+              top: '50%',
+              transform: 'translateX(-50%) translateY(-50%)',
+              borderColor: `hsla(${260 + i * 20}, 80%, 70%, ${0.4 - i * 0.05})`,
+              filter: 'blur(1px)',
+            }}
+            animate={{
+              scale: [0.8, 1.4, 0.8],
+              opacity: [0, 0.8, 0],
+              rotate: [0, 180],
+            }}
+            transition={{
+              duration: 2.5 + i * 0.3,
+              repeat: Infinity,
+              ease: "easeOut",
+              delay: i * 0.2,
+            }}
+          />
+        ))}
+
+        {/* Ultimate Quantum Orb */}
+        <motion.div
+          className="relative w-80 h-80 rounded-full overflow-hidden"
+          style={{
+            background: `radial-gradient(circle at 30% 30%, 
+              hsla(260, 80%, 70%, 0.9),
+              hsla(220, 90%, 60%, 0.8),
+              hsla(200, 85%, 50%, 0.95))`,
+            boxShadow: `
+              0 0 80px hsla(260, 80%, 70%, 0.7),
+              0 0 160px hsla(220, 90%, 60%, 0.5),
+              0 0 280px hsla(200, 85%, 50%, 0.3),
+              inset 0 0 120px rgba(255, 255, 255, 0.1)
+            `
+          }}
+        >
+          {/* Quantum Liquid Motion */}
+          <motion.div
+            className="absolute inset-0 rounded-full"
+            style={{
+              background: `conic-gradient(from 0deg, 
+                hsla(260, 80%, 70%, 0.4),
+                hsla(220, 90%, 60%, 0.6),
+                hsla(180, 85%, 55%, 0.4),
+                hsla(300, 75%, 65%, 0.5),
+                hsla(260, 80%, 70%, 0.4))`,
+              filter: `blur(1px)`,
+            }}
+            animate={{
+              rotate: 360,
+            }}
+            transition={{
+              rotate: { duration: 10, repeat: Infinity, ease: "linear" }
+            }}
+          />
+
+          {/* Prismatic Layer */}
+          <motion.div
+            className="absolute inset-2 rounded-full"
+            style={{
+              background: `conic-gradient(from 0deg, 
+                transparent 0deg,
+                hsla(260, 100%, 80%, 0.3) 45deg,
+                transparent 90deg,
+                hsla(220, 100%, 75%, 0.4) 135deg,
+                transparent 180deg,
+                hsla(180, 100%, 70%, 0.3) 225deg,
+                transparent 270deg,
+                hsla(300, 100%, 75%, 0.4) 315deg,
+                transparent 360deg)`,
+            }}
+            animate={{
+              rotate: -360,
+            }}
+            transition={{
+              rotate: { duration: 15, repeat: Infinity, ease: "linear" }
+            }}
+          />
+
+          {/* Quantum Floating Orbs */}
+          {Array.from({ length: 12 }).map((_, i) => (
+            <motion.div
+              key={`quantum-orb-${i}`}
+              className="absolute rounded-full"
+              style={{
+                width: `${6 + Math.sin(i) * 4}px`,
+                height: `${6 + Math.sin(i) * 4}px`,
+                background: `hsla(${220 + i * 20}, 90%, 80%, 0.8)`,
+                left: `${25 + Math.sin(i * 0.523) * 35}%`,
+                top: `${30 + Math.cos(i * 0.523) * 30}%`,
+                filter: 'blur(0.5px)',
               }}
-              className="text-white/60 hover:text-white transition-colors"
+              animate={{
+                x: [0, Math.sin(i * 0.785) * 30, 0],
+                y: [0, Math.cos(i * 0.785) * 25, 0],
+                opacity: [0.3, 1, 0.3],
+              }}
+              transition={{
+                duration: 4 + i * 0.3,
+                repeat: Infinity,
+                ease: "easeInOut",
+                delay: i * 0.2,
+              }}
+            />
+          ))}
+
+          {/* Enhanced Track Cover with Quantum Effects */}
+          {currentTrack.coverImageUrl ? (
+            <motion.div
+              className="absolute inset-16 rounded-full overflow-hidden"
+              animate={{
+                rotate: isPlaying ? 360 : 0,
+              }}
+              transition={{
+                duration: 40,
+                repeat: isPlaying ? Infinity : 0,
+                ease: "linear"
+              }}
             >
-              {isMuted || volume === 0 ? (
-                <VolumeX className="h-5 w-5" />
-              ) : (
-                <Volume2 className="h-5 w-5" />
-              )}
-            </button>
-            
-            <div className="flex items-center gap-2 w-28">
-              <input
-                type="range"
-                min="0"
-                max="100"
-                value={isMuted ? 0 : volume}
-                onChange={handleVolumeChange}
-                className="w-full h-1 bg-white/20 rounded-lg appearance-none cursor-pointer slider"
+              <img
+                src={currentTrack.coverImageUrl}
+                alt={currentTrack.songName}
+                className="w-full h-full object-cover"
                 style={{
-                  background: `linear-gradient(to right, #8B5CF6 0%, #8B5CF6 ${volume}%, rgba(255,255,255,0.2) ${volume}%, rgba(255,255,255,0.2) 100%)`
+                  filter: `blur(${isPlaying ? 0.8 : 0}px) 
+                           brightness(1.2) 
+                           contrast(1.1)
+                           saturate(1.3)`,
+                  opacity: 0.75,
                 }}
               />
-              <span className="text-xs text-white/60 w-8">{isMuted ? 0 : volume}</span>
+            </motion.div>
+          ) : (
+            <div className="absolute inset-16 rounded-full bg-gradient-to-br from-purple-500/50 to-blue-500/50 flex items-center justify-center backdrop-blur-sm">
+              <motion.div
+                animate={{
+                  rotate: isPlaying ? 360 : 0,
+                }}
+                transition={{
+                  rotate: { duration: 25, repeat: isPlaying ? Infinity : 0, ease: "linear" }
+                }}
+                style={{
+                  filter: `brightness(1.2)`,
+                }}
+              >
+                <Radio className="h-16 w-16 text-white/80" />
+              </motion.div>
             </div>
-          </div>
-        </div>
-        </div>
+          )}
+
+          {/* Quantum Central Play/Pause Button */}
+          <motion.button
+            whileHover={{ scale: 1.15 }}
+            whileTap={{ scale: 0.85 }}
+            onClick={isUserPaused || !isPlaying ? handleResume : handlePause}
+            disabled={!isBroadcastActive}
+            className="absolute inset-0 flex items-center justify-center group z-10"
+          >
+            <motion.div
+              className="w-28 h-28 rounded-full flex items-center justify-center backdrop-blur-md border transition-all duration-500 group-hover:border-white/70"
+              style={{
+                background: `radial-gradient(circle, 
+                  rgba(255, 255, 255, 0.15),
+                  rgba(168, 85, 247, 0.1))`,
+                borderColor: `rgba(255, 255, 255, 0.4)`,
+                boxShadow: `
+                  0 0 40px rgba(255, 255, 255, 0.3),
+                  inset 0 0 20px rgba(255, 255, 255, 0.1)
+                `
+              }}
+              whileHover={{
+                background: `radial-gradient(circle, 
+                  rgba(255, 255, 255, 0.25),
+                  rgba(168, 85, 247, 0.15))`,
+                boxShadow: `0 0 50px rgba(255, 255, 255, 0.6)`
+              }}
+            >
+              <div>
+                {isUserPaused || !isPlaying ? (
+                  <Play className="h-12 w-12 text-white ml-1 drop-shadow-2xl" />
+                ) : (
+                  <Pause className="h-12 w-12 text-white drop-shadow-2xl" />
+                )}
+              </div>
+            </motion.div>
+          </motion.button>
+        </motion.div>
       </motion.div>
 
       {/* Hidden Audio Element */}
-
-
+      <audio
+        ref={audioRef}
+        onLoadedMetadata={() => {
+          if (audioRef.current) {
+            const audioDuration = audioRef.current.duration;
+            audioRef.current.volume = volume / 100;
+            
+            console.log('🎵 Audio loaded:', {
+              fileName: currentTrack?.fileName,
+              songName: currentTrack?.songName,
+              databaseDuration: currentTrack?.duration,
+              actualAudioDuration: audioDuration,
+              durationMismatch: currentTrack?.duration !== audioDuration
+            });
+            
+            if (currentTrack && Math.abs((currentTrack.duration || 0) - audioDuration) > 1) {
+              console.warn('⚠️ Duration mismatch detected - database should be updated');
+            }
+          }
+        }}
+        onTimeUpdate={() => {
+          // Audio time update - can be used for future features
+        }}
+      />
     </div>
   );
 }
