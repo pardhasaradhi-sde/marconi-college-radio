@@ -1,14 +1,14 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Upload, Music, Trash2, Play, Pause, Loader, Image, X } from 'lucide-react';
+import { Upload, Music, Trash2, Loader, Image, X } from 'lucide-react';
 import { Card } from '../ui/Card';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { Toast } from '../ui/Toast';
-import { AdminAudioPlayer } from './AdminAudioPlayer';
 import { useAuth } from '../../contexts/AuthContext';
 import { useRadio } from '../../contexts/RadioContext';
-import { audioService, radioService, AudioFile } from '../../services/appwrite';
+import { audioService, AudioFile } from '../../services/appwrite';
+import { AdminAudioMonitor } from './AdminAudioMonitor';
 
 export function UploadManager() {
   const { user } = useAuth();
@@ -117,37 +117,15 @@ export function UploadManager() {
     }
   };
 
-  const handlePlay = async (audioFile: AudioFile) => {
-    try {
-      await radioService.playTrack(audioFile);
-    } catch (error) {
-      console.error('Play error:', error);
-    }
-  };
-
-  const handlePause = async () => {
-    try {
-      await radioService.pauseTrack();
-    } catch (error) {
-      console.error('Pause error:', error);
-    }
-  };  const handleDelete = async (audioFile: AudioFile) => {
-    const isCurrentlyPlaying = radioState?.currentTrack?.fileId === audioFile.fileId;
-    
-    const confirmMessage = isCurrentlyPlaying 
-      ? `"${audioFile.songName || audioFile.fileName}" is currently playing. Deleting it will stop the broadcast. Are you sure?`
-      : `Are you sure you want to delete "${audioFile.songName || audioFile.fileName}"? This action cannot be undone.`;
+  const handleDelete = async (audioFile: AudioFile) => {
+    const confirmMessage = `Are you sure you want to delete "${audioFile.songName || audioFile.fileName}"? This action cannot be undone.`;
       
     if (!confirm(confirmMessage)) return;
     
     setDeletingFiles(prev => new Set(prev).add(audioFile.$id));
     
     try {
-      // If this is the currently playing track, stop it first
-      if (isCurrentlyPlaying) {
-        await radioService.stopTrack();
-      }
-      
+      // Note: Manual broadcast control removed - radio only controlled by scheduling
       await audioService.deleteAudio(audioFile.$id, audioFile.fileId);
       await refreshAudioFiles();
       
@@ -201,8 +179,8 @@ export function UploadManager() {
         <p className="text-white/60 font-body">Manage your radio station's music collection</p>
       </div>
 
-      {/* Admin Audio Player */}
-      <AdminAudioPlayer className="sticky top-4 z-10" />
+      {/* Admin Audio Monitor */}
+      <AdminAudioMonitor className="sticky top-4 z-10" />
 
       {/* Upload Section */}
       <Card glass className="p-6">
@@ -516,22 +494,6 @@ export function UploadManager() {
 
                   {/* Controls */}
                   <div className="flex items-center gap-2">
-                    <Button
-                      onClick={() => radioState?.currentTrack?.fileId === audioFile.fileId && radioState?.isPlaying
-                        ? handlePause()
-                        : handlePlay(audioFile)
-                      }
-                      variant="secondary"
-                      size="sm"
-                      disabled={isDeleting}
-                      className="bg-white/10 hover:bg-white/20 border-white/20 disabled:opacity-50"
-                    >
-                      {radioState?.currentTrack?.fileId === audioFile.fileId && radioState?.isPlaying ? (
-                        <Pause className="h-4 w-4" />
-                      ) : (
-                        <Play className="h-4 w-4" />
-                      )}
-                    </Button>
                     <Button
                       onClick={() => handleDelete(audioFile)}
                       variant="secondary"
