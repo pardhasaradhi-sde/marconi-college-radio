@@ -23,12 +23,12 @@ export function UserDashboard() {
       case 'home':
         return (
           <>
-            {/* Welcome text positioned lower and avoiding sidebar */}
-            <div className="fixed top-36 md:top-28 left-1/2 md:left-1/2 md:ml-4 transform -translate-x-1/2 z-20 text-center px-4 max-w-3xl">
-              <h1 className="text-3xl md:text-4xl font-heading font-bold text-white mb-2">
+            {/* Welcome text optimized for mobile */}
+            <div className="fixed top-16 md:top-28 left-1/2 md:left-1/2 md:ml-4 transform -translate-x-1/2 z-20 text-center px-4 max-w-xs sm:max-w-sm md:max-w-3xl">
+              <h1 className="text-lg sm:text-xl md:text-4xl font-heading font-bold text-white mb-1">
                 Welcome back, {user?.name}!
               </h1>
-              <p className="text-lg md:text-xl text-white/60 font-body">Here's what's happening on Marconi today</p>
+              <p className="text-xs sm:text-sm md:text-lg text-white/60 font-body">Here's what's happening on Marconi today</p>
             </div>
             {/* Orb will be positioned using fixed positioning from its own component */}
             <StreamPlayer />
@@ -41,12 +41,12 @@ export function UserDashboard() {
       default:
         return (
           <>
-            {/* Welcome text positioned lower and avoiding sidebar */}
-            <div className="fixed top-36 md:top-28 left-1/2 md:left-1/2 md:ml-4 transform -translate-x-1/2 z-20 text-center px-4 max-w-3xl">
-              <h1 className="text-3xl md:text-4xl font-heading font-bold text-white mb-2">
+            {/* Welcome text optimized for mobile */}
+            <div className="fixed top-16 md:top-28 left-1/2 md:left-1/2 md:ml-4 transform -translate-x-1/2 z-20 text-center px-4 max-w-xs sm:max-w-sm md:max-w-3xl">
+              <h1 className="text-lg sm:text-xl md:text-4xl font-heading font-bold text-white mb-1">
                 Welcome back, {user?.name}!
               </h1>
-              <p className="text-lg md:text-xl text-white/60 font-body">Here's what's happening on Marconi today</p>
+              <p className="text-xs sm:text-sm md:text-lg text-white/60 font-body">Here's what's happening on Marconi today</p>
             </div>
             <StreamPlayer />
           </>

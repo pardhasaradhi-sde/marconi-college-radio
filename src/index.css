@@ -245,51 +245,207 @@
   transform: translate(-50%, -50%);
 }
 
-/* Ensure the orb stays centered on all screen sizes */
+/* Mobile-first orb centering with better calculations */
+.orb-center-absolute {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+}
+
+.orb-perfect-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  place-items: center;
+  place-content: center;
+  margin: 0 auto;
+  transform-origin: center center;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+/* Mobile-optimized orb positioning */
 @media (max-width: 768px) {
   .orb-center-container {
-    min-height: calc(100vh - 16rem);
+    min-height: calc(100vh - 10rem);
     padding: 0;
-    margin-top: 0;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
   
   .orb-center-absolute,
   .orb-perfect-center {
-    top: 55vh !important; /* Move down to 55% of viewport height */
+    top: calc(50vh - 1rem) !important; /* Better mobile centering */
     left: 50vw !important;
     transform: translate(-50%, -50%) !important;
+    position: fixed !important;
   }
 }
 
-/* Fine-tune for smaller mobile screens */
+/* Optimize for different mobile screen sizes */
 @media (max-width: 480px) {
   .orb-center-absolute,
   .orb-perfect-center {
-    top: 52vh !important; /* Slightly higher on very small screens */
+    top: calc(50vh - 0.5rem) !important; /* Fine-tune for smaller screens */
   }
 }
 
-/* Adjust for very tall screens */
+/* For very small screens (iPhone SE, older phones) */
+@media (max-width: 375px) {
+  .orb-center-absolute,
+  .orb-perfect-center {
+    top: 50vh !important; /* True center for very small screens */
+  }
+}
+
+/* Adjust for landscape mobile orientation */
+@media (max-width: 768px) and (orientation: landscape) {
+  .orb-center-absolute,
+  .orb-perfect-center {
+    top: 50vh !important; /* True center in landscape */
+  }
+}
+
+/* Fine-tune for taller mobile screens */
 @media (max-width: 768px) and (min-height: 800px) {
   .orb-center-absolute,
   .orb-perfect-center {
-    top: 57vh !important; /* Lower on taller screens */
+    top: calc(50vh - 1.5rem) !important; /* Account for UI elements on tall screens */
   }
 }
 
-/* Specific adjustment for common mobile heights */
-@media (max-width: 768px) and (max-height: 700px) {
+/* Optimize for shorter mobile screens */
+@media (max-width: 768px) and (max-height: 667px) {
   .orb-center-absolute,
   .orb-perfect-center {
-    top: 50vh !important; /* Center on shorter screens */
+    top: calc(50vh + 0.5rem) !important; /* Slightly lower on short screens */
   }
 }
 
+/* Desktop positioning remains unchanged */
 @media (min-width: 769px) {
   .orb-center-absolute,
   .orb-perfect-center {
     top: calc(50vh + 1rem);
     left: 50vw;
     transform: translate(-50%, -50%);
+  }
+}
+
+/* Mobile touch optimization */
+@media (max-width: 768px) {
+  /* Improve touch targets */
+  button, .touch-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  /* Prevent text selection on mobile */
+  .no-select {
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+  }
+  
+  /* Better scroll behavior on mobile */
+  body {
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  /* Enhanced focus styles for mobile accessibility */
+  button:focus,
+  .focusable:focus {
+    outline: 2px solid rgba(168, 85, 247, 0.8);
+    outline-offset: 2px;
+  }
+  
+  /* Better spacing for mobile content */
+  .mobile-spacing {
+    padding: 1rem;
+    margin: 0.5rem 0;
+  }
+  
+  /* Optimize text for mobile readability */
+  .mobile-text {
+    line-height: 1.5;
+    font-size: 16px; /* Prevent zoom on iOS */
+  }
+  
+  /* Improve mobile orb container */
+  .orb-center-absolute {
+    z-index: 10 !important;
+    pointer-events: auto;
+  }
+  
+  /* Better mobile spacing for welcome text */
+  .mobile-welcome {
+    margin-top: 1rem;
+    padding: 0 1.5rem;
+  }
+  
+  /* Ensure mobile navigation doesn't overlap content */
+  .mobile-content-padding {
+    padding-bottom: 7rem; /* Account for mobile bottom nav */
+  }
+  
+  /* Reduce motion for users who prefer it */
+  @media (prefers-reduced-motion: reduce) {
+    * {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+/* Enhanced mobile orb centering and optimization */
+.mobile-orb-perfect-center {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 10;
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.mobile-orb-perfect-center > * {
+  pointer-events: auto;
+}
+
+/* Mobile-specific optimizations */
+@media (max-width: 768px) {
+  .mobile-orb-perfect-center {
+    padding-top: 4rem; /* Account for mobile header */
+    padding-bottom: 6rem; /* Account for mobile bottom nav */
+  }
+  
+  /* Ensure orb is properly sized for mobile */
+  .orb-center-absolute,
+  .orb-perfect-center {
+    position: fixed !important;
+    top: 50% !important;
+    left: 50% !important;
+    transform: translate(-50%, -50%) !important;
+  }
+  
+  /* Touch-friendly mobile interactions */
+  .touch-optimized {
+    min-height: 44px;
+    min-width: 44px;
   }
 }
