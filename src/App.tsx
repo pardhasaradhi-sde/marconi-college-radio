@@ -54,8 +54,11 @@ function AppContent() {
   }
   return (
     <>
-      <Navbar />
-      {user.role === 'admin' ? <AdminDashboard /> : <UserDashboard />}
+      {user.role === 'admin' ? (
+        <AdminDashboard />
+      ) : (
+        <UserDashboard />
+      )}
     </>
   );
 }

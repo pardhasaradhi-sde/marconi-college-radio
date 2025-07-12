@@ -28,6 +28,7 @@ const ADMIN_GMAILS = [
   'admin@anurag.edu.in',
   'admin2@gmail.com',
   'gollapallisupreeth@gmail.com',
+  'pardhu1@anurag.edu.in',
   // Add more admin gmails here
 ];
 

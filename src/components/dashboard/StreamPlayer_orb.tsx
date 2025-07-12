@@ -33,47 +33,28 @@ export function StreamPlayer({ backgroundAudio }: StreamPlayerProps) {
 
   if (isLoading) {
     return (
-      <div className="mobile-radio-perfect-center">
-        <div className="vintage-radio loading">
-          <div className="radio-screen">
-            <div className="loading-display">
-              <div className="loading-vinyl">
+      <div className="flex items-center justify-center p-4 sm:p-6 lg:p-8">
+        <div className="w-full max-w-md mx-auto">
+          <div className="bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-sm rounded-2xl sm:rounded-3xl border border-white/20 p-6 sm:p-8 lg:p-10 text-center">
+            <div className="flex items-center justify-center mb-4 sm:mb-6">
+              <div className="relative">
                 <motion.div
-                  className="vinyl-disc loading-animation"
+                  className="w-16 h-16 sm:w-20 sm:h-20 lg:w-24 lg:h-24 rounded-full bg-gradient-to-br from-accent-400 to-accent-600 flex items-center justify-center"
                   animate={{ rotate: 360 }}
                   transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
                 >
-                  <div className="vinyl-center">
-                    <Radio className="h-4 w-4 text-white/60" />
-                  </div>
+                  <Radio className="h-6 w-6 sm:h-8 sm:w-8 lg:h-10 lg:w-10 text-white/60" />
                 </motion.div>
               </div>
-              <div className="loading-text">
-                <motion.p
-                  animate={{ opacity: [0.5, 1, 0.5] }}
-                  transition={{ duration: 1.5, repeat: Infinity }}
-                  className="text-white/70 text-sm"
-                >
-                  Tuning in...
-                </motion.p>
-              </div>
             </div>
-          </div>
-          <div className="radio-controls-centered">
-            <div className="main-control-centered">
-              <div className="play-pause-btn-centered disabled">
-                <Radio className="h-6 w-6 text-white/40" />
-              </div>
-            </div>
-          </div>
-          <div className="radio-branding">
-            <div className="brand-name">MARCONI</div>
-            <div className="model-number">Loading...</div>
-          </div>
-          <div className="speaker-grille">
-            {Array.from({ length: 40 }).map((_, i) => (
-              <div key={i} className="grille-hole" />
-            ))}
+            
+            <motion.p
+              animate={{ opacity: [0.5, 1, 0.5] }}
+              transition={{ duration: 1.5, repeat: Infinity }}
+              className="text-white/70 text-sm sm:text-base lg:text-lg font-medium"
+            >
+              Tuning in...
+            </motion.p>
           </div>
         </div>
       </div>
@@ -82,36 +63,32 @@ export function StreamPlayer({ backgroundAudio }: StreamPlayerProps) {
 
   if (!currentTrack) {
     return (
-      <div className="mobile-radio-perfect-center">
+      <div className="flex items-center justify-center p-4 sm:p-6 lg:p-8">
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="flex flex-col items-center justify-center text-center"
+          className="w-full max-w-lg mx-auto text-center"
         >
           {/* Inactive Radio */}
-          <div className="relative mb-8">
-            <div className="vintage-radio offline">
-              <div className="radio-screen">
-                <Radio className="h-8 w-8 sm:h-12 sm:w-12 text-gray-400" />
-                <p className="text-xs sm:text-sm text-gray-400 mt-2">OFFLINE</p>
-              </div>
-              <div className="radio-controls-centered">
-                <div className="main-control-centered">
-                  <div className="play-pause-btn-centered disabled">
-                    <Radio className="h-6 w-6 text-white/40" />
-                  </div>
-                </div>
+          <div className="bg-gradient-to-br from-white/5 to-white/2 backdrop-blur-sm rounded-2xl sm:rounded-3xl border border-white/10 p-6 sm:p-8 lg:p-10 mb-6 sm:mb-8">
+            <div className="flex items-center justify-center mb-4 sm:mb-6">
+              <div className="w-20 h-20 sm:w-24 sm:h-24 lg:w-28 lg:h-28 rounded-full bg-gradient-to-br from-gray-600 to-gray-700 flex items-center justify-center">
+                <Radio className="h-8 w-8 sm:h-10 sm:w-10 lg:h-12 lg:w-12 text-gray-400" />
               </div>
             </div>
+            <p className="text-xs sm:text-sm lg:text-base text-gray-400 font-medium">OFFLINE</p>
           </div>
-          <h3 className="text-xl sm:text-2xl font-bold text-white mb-2">No Scheduled Broadcast</h3>
-          <p className="text-gray-400 text-base sm:text-lg mb-4 px-4">The radio station is currently offline. Check back during scheduled broadcast times.</p>
+          
+          <h3 className="text-lg sm:text-xl lg:text-2xl xl:text-3xl font-bold text-white mb-3 sm:mb-4">No Scheduled Broadcast</h3>
+          <p className="text-gray-400 text-sm sm:text-base lg:text-lg mb-4 sm:mb-6 px-4 max-w-md mx-auto leading-relaxed">
+            The radio station is currently offline. Check back during scheduled broadcast times.
+          </p>
           
           {/* Debug: Start broadcast button if audio files are available */}
           {audioFiles.length > 0 && (
             <button
               onClick={startDebugBroadcast}
-              className="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition-colors"
+              className="px-4 sm:px-6 lg:px-8 py-2 sm:py-3 lg:py-4 bg-purple-600 hover:bg-purple-700 text-white rounded-lg sm:rounded-xl font-medium transition-colors text-sm sm:text-base lg:text-lg"
             >
               Start Test Broadcast
             </button>
@@ -122,91 +99,84 @@ export function StreamPlayer({ backgroundAudio }: StreamPlayerProps) {
   }
 
   return (
-    <div className="mobile-radio-perfect-center">
-      {/* Vintage Radio Container */}
+    <div className="flex items-center justify-center p-4 sm:p-6 lg:p-8">
+      {/* Modern Radio Player Container */}
       <motion.div
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.6, ease: "easeOut" }}
-        className="vintage-radio active"
+        className="w-full max-w-sm sm:max-w-md lg:max-w-lg xl:max-w-xl mx-auto"
       >
-        {/* Radio Screen/Display */}
-        <div className="radio-screen">
-          {/* Now Playing Info */}
-          <div className="now-playing-display">
-          {/* Large Centered Album Art - Full Display */}
-          <div className="album-art-full-container">
-            {currentTrack.coverImageUrl ? (
-              <div className="album-art-full">
+        <div className="bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-lg rounded-2xl sm:rounded-3xl border border-white/20 p-6 sm:p-8 lg:p-10 shadow-2xl">
+          
+          {/* Album Art Display */}
+          <div className="relative mb-6 sm:mb-8 lg:mb-10">
+            <div className="aspect-square rounded-xl sm:rounded-2xl overflow-hidden bg-gradient-to-br from-accent-400 to-accent-600 relative">
+              {currentTrack.coverImageUrl ? (
                 <motion.img
                   key={currentTrack.fileId}
                   src={currentTrack.coverImageUrl}
                   alt="Album Art"
-                  className="album-image-full"
+                  className="w-full h-full object-cover"
                   initial={{ scale: 0.8, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1 }}
                   transition={{ duration: 0.5 }}
                 />
-                <div className="album-art-overlay-full">
-                  {isPlaying && (
-                    <motion.div
-                      className="playing-pulse-full"
-                      animate={{ scale: [1, 1.05, 1] }}
-                      transition={{ duration: 2, repeat: Infinity }}
-                    >
-                      <div className="pulse-ring-full"></div>
-                    </motion.div>
-                  )}
-                </div>
-              </div>
-            ) : (
-              <div className="default-album-art-full">
-                <div className="vinyl-record-full">
+              ) : (
+                <div className="w-full h-full flex items-center justify-center">
                   <motion.div
-                    className="vinyl-disc-full"
                     animate={{ rotate: isPlaying ? 360 : 0 }}
                     transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+                    className="w-24 h-24 sm:w-32 sm:h-32 lg:w-40 lg:h-40 rounded-full bg-white/20 flex items-center justify-center"
                   >
-                    <div className="vinyl-center-full">
-                      <Radio className="h-20 w-20 text-white/80" />
-                    </div>
+                    <Radio className="h-12 w-12 sm:h-16 sm:w-16 lg:h-20 lg:w-20 text-white/80" />
                   </motion.div>
                 </div>
-              </div>
-            )}
+              )}
+              
+              {/* Playing Pulse Effect */}
+              {isPlaying && (
+                <motion.div
+                  className="absolute inset-0 rounded-xl sm:rounded-2xl border-4 border-white/30"
+                  animate={{ scale: [1, 1.05, 1] }}
+                  transition={{ duration: 2, repeat: Infinity }}
+                />
+              )}
+            </div>
           </div>
-          </div>
-        </div>
 
-        {/* Radio Controls - Centered Play/Pause Only */}
-        <div className="radio-controls-centered">
-          {/* Play/Pause Button */}
-          <div className="main-control-centered">
-            <button
+          {/* Track Info */}
+          <div className="text-center mb-6 sm:mb-8">
+            <h3 className="text-lg sm:text-xl lg:text-2xl font-bold text-white mb-2 truncate">
+              {currentTrack.songName || currentTrack.fileName || 'Live Stream'}
+            </h3>
+            <p className="text-sm sm:text-base lg:text-lg text-white/60 truncate">
+              {currentTrack.artist || 'Marconi College Radio'}
+            </p>
+          </div>
+
+          {/* Play/Pause Control */}
+          <div className="flex justify-center">
+            <motion.button
               onClick={isUserPaused || !isPlaying ? handleResume : handlePause}
               disabled={!currentTrack}
-              className="play-pause-btn-centered touch-optimized"
+              className="w-16 h-16 sm:w-20 sm:h-20 lg:w-24 lg:h-24 rounded-full bg-accent-500 hover:bg-accent-600 disabled:bg-gray-600 disabled:cursor-not-allowed flex items-center justify-center transition-colors shadow-lg"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
             >
               {isUserPaused || !isPlaying ? (
-                <Play className="h-8 w-8 sm:h-10 sm:w-10 text-white ml-1" />
+                <Play className="h-6 w-6 sm:h-8 sm:w-8 lg:h-10 lg:w-10 text-white ml-1" />
               ) : (
-                <Pause className="h-8 w-8 sm:h-10 sm:w-10 text-white" />
+                <Pause className="h-6 w-6 sm:h-8 sm:w-8 lg:h-10 lg:w-10 text-white" />
               )}
-            </button>
+            </motion.button>
           </div>
-        </div>
 
-        {/* Radio Branding */}
-        <div className="radio-branding">
-          <div className="brand-name">MARCONI</div>
-          <div className="model-number">College Radio</div>
-        </div>
-
-        {/* Speaker Grille */}
-        <div className="speaker-grille">
-          {Array.from({ length: 40 }).map((_, i) => (
-            <div key={i} className="grille-hole" />
-          ))}
+          {/* Radio Branding */}
+          <div className="text-center mt-6 sm:mt-8 pt-4 sm:pt-6 border-t border-white/10">
+            <div className="text-xs sm:text-sm lg:text-base font-bold text-white/80 tracking-widest">MARCONI</div>
+            <div className="text-xs sm:text-sm text-white/50">College Radio</div>
+          </div>
         </div>
       </motion.div>
     </div>

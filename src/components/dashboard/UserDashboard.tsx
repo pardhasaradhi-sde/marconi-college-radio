@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { motion } from 'framer-motion';
-import { Home, Megaphone, User } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Home, Megaphone, User, LogOut, Menu, X, Radio } from 'lucide-react';
 import { StreamPlayer } from './StreamPlayer_orb';
 import { MiniPlayer } from './MiniPlayer';
 import { AnnouncementView } from './AnnouncementView';
@@ -12,275 +12,356 @@ type TabType = 'home' | 'announcements' | 'profile';
 
 export function UserDashboard() {
   const [activeTab, setActiveTab] = useState<TabType>('home');
-  const { user } = useAuth();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const { user, logout } = useAuth();
   
   // Background audio that persists across all tabs
   const backgroundAudio = useBackgroundAudio();
 
   const tabs = [
-    { id: 'home' as TabType, label: 'Home', icon: Home },
-    { id: 'announcements' as TabType, label: 'Events', icon: Megaphone },
-    { id: 'profile' as TabType, label: 'Profile', icon: User },
+    { id: 'home' as TabType, label: 'Home', icon: Home, description: 'Listen to live streams' },
+    { id: 'announcements' as TabType, label: 'Events', icon: Megaphone, description: 'Campus announcements' },
+    { id: 'profile' as TabType, label: 'Profile', icon: User, description: 'Your account settings' },
   ];
+
+  const handleTabChange = (tabId: TabType) => {
+    setActiveTab(tabId);
+    setIsMobileMenuOpen(false);
+  };
+
   const renderContent = () => {
     switch (activeTab) {
       case 'home':
         return (
-          <div className="relative h-full">
-            {/* Welcome text optimized for mobile with better positioning */}
-            <div className="fixed top-24 md:top-28 left-1/2 md:left-1/2 md:ml-4 transform -translate-x-1/2 z-20 text-center px-4 max-w-sm sm:max-w-md md:max-w-3xl mobile-welcome">
-              <motion.div
-                initial={{ opacity: 0, y: -20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: 0.2 }}
-              >
-                <h1 className="text-lg sm:text-xl md:text-4xl font-heading font-bold text-white mb-2 leading-tight drop-shadow-lg">
-                  Welcome back, {user?.name}!
-                </h1>
-                <p className="text-sm sm:text-base md:text-lg text-white/90 font-body leading-relaxed drop-shadow-md">
-                  Here's what's happening on Marconi today
-                </p>
-              </motion.div>
-            </div>
-            {/* Radio container for perfect mobile centering */}
-            <div className="mobile-radio-container">
-              <StreamPlayer backgroundAudio={backgroundAudio} />
+          <div className="flex flex-col h-full w-full">
+            {/* Welcome Section */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6 }}
+              className="mb-6 sm:mb-8 lg:mb-12 text-center lg:text-left"
+            >
+              <h1 className="text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-heading font-bold text-white mb-2 sm:mb-4">
+                Welcome back, <span className="text-accent-300">{user?.name?.split(' ')[0]}</span>!
+              </h1>
+              <p className="text-base sm:text-lg lg:text-xl text-white/80 font-body leading-relaxed max-w-2xl mx-auto lg:mx-0">
+                Here's what's happening on Marconi today
+              </p>
+            </motion.div>
+
+            {/* Main Player Section */}
+            <div className="flex-1 flex items-center justify-center">
+              <div className="w-full max-w-4xl">
+                <StreamPlayer backgroundAudio={backgroundAudio} />
+              </div>
             </div>
           </div>
         );
       case 'announcements':
         return (
-          <>
+          <div className="h-full w-full pb-20 lg:pb-4">
             <AnnouncementView />
-            {/* Show MiniPlayer when audio is playing */}
+            {/* MiniPlayer positioned outside content flow */}
             {backgroundAudio.currentTrack && (
-              <MiniPlayer backgroundAudio={backgroundAudio} />
+              <div className="fixed bottom-20 sm:bottom-24 lg:bottom-4 left-4 right-4 lg:left-[336px] lg:right-4 z-30 pointer-events-none">
+                <div className="pointer-events-auto">
+                  <MiniPlayer backgroundAudio={backgroundAudio} />
+                </div>
+              </div>
             )}
-          </>
+          </div>
         );
       case 'profile':
         return (
-          <>
+          <div className="h-full w-full pb-20 lg:pb-4">
             <ProfileView />
-            {/* Show MiniPlayer when audio is playing */}
+            {/* MiniPlayer positioned outside content flow */}
             {backgroundAudio.currentTrack && (
-              <MiniPlayer backgroundAudio={backgroundAudio} />
+              <div className="fixed bottom-20 sm:bottom-24 lg:bottom-4 left-4 right-4 lg:left-[336px] lg:right-4 z-30 pointer-events-none">
+                <div className="pointer-events-auto">
+                  <MiniPlayer backgroundAudio={backgroundAudio} />
+                </div>
+              </div>
             )}
-          </>
-        );
-      default:
-        return (
-          <div className="relative h-full">
-            {/* Welcome text optimized for mobile */}
-            <div className="fixed top-24 md:top-28 left-1/2 md:left-1/2 md:ml-4 transform -translate-x-1/2 z-20 text-center px-4 max-w-sm sm:max-w-md md:max-w-3xl mobile-welcome">
-              <motion.div
-                initial={{ opacity: 0, y: -20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: 0.2 }}
-              >
-                <h1 className="text-lg sm:text-xl md:text-4xl font-heading font-bold text-white mb-2 leading-tight drop-shadow-lg">
-                  Welcome back, {user?.name}!
-                </h1>
-                <p className="text-sm sm:text-base md:text-lg text-white/90 font-body leading-relaxed drop-shadow-md">
-                  Here's what's happening on Marconi today
-                </p>
-              </motion.div>
-            </div>
-            <div className="mobile-radio-container">
-              <StreamPlayer backgroundAudio={backgroundAudio} />
-            </div>
           </div>
         );
+      default:
+        return null;
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-950 via-primary-900 to-accent-900 p-4">
-      {/* Desktop Sidebar - Floating Liquid Glass */}
-      <motion.div 
+    <div className="min-h-screen bg-gradient-to-br from-primary-950 via-primary-900 to-accent-900">
+      {/* Universal Header - Desktop & Mobile */}
+      <motion.header 
+        initial={{ y: -100, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ duration: 0.6, ease: "easeOut" }}
+        className="fixed top-0 left-0 right-0 z-50 bg-primary-900/95 backdrop-blur-xl border-b border-white/10"
+      >
+        <div className="flex items-center justify-between px-4 lg:px-6 py-3 lg:py-4">
+          {/* Left Side - Marconi Radio */}
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 lg:w-10 lg:h-10 bg-gradient-to-br from-accent-500 to-accent-600 rounded-xl flex items-center justify-center shadow-lg">
+              <Radio className="h-4 w-4 lg:h-5 lg:w-5 text-white" />
+            </div>
+            <div>
+              <h1 className="text-lg lg:text-xl font-heading font-bold text-white">Marconi Radio</h1>
+              <p className="text-xs lg:text-sm text-white/60 font-body">Vocals of Anurag University</p>
+            </div>
+          </div>
+          
+          {/* Right Side - User Account & Controls */}
+          <div className="flex items-center gap-2 lg:gap-4">
+            {/* User Info - Hidden on small mobile, shown on larger screens */}
+            <div className="hidden sm:flex items-center gap-3 bg-white/5 rounded-xl px-3 py-2 border border-white/10">
+              <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg flex items-center justify-center">
+                <User className="h-4 w-4 text-white" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-white truncate">
+                  {user?.name}
+                </p>
+                <p className="text-xs text-white/60 truncate">
+                  {user?.email}
+                </p>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={logout}
+              className="w-8 h-8 lg:w-10 lg:h-10 bg-red-500/20 hover:bg-red-500/30 backdrop-blur-xl rounded-lg border border-red-400/20 flex items-center justify-center text-red-300 hover:text-red-200 transition-colors"
+              title="Sign Out"
+            >
+              <LogOut className="h-4 w-4" />
+            </motion.button>
+            
+            {/* Mobile Menu Button - Only on mobile */}
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              className="lg:hidden w-8 h-8 bg-white/10 backdrop-blur-xl rounded-lg border border-white/20 flex items-center justify-center shadow-lg"
+            >
+              {isMobileMenuOpen ? (
+                <X className="h-4 w-4 text-white" />
+              ) : (
+                <Menu className="h-4 w-4 text-white" />
+              )}
+            </motion.button>
+          </div>
+        </div>
+      </motion.header>
+
+      {/* Desktop Sidebar */}
+      <motion.aside 
         initial={{ x: -100, opacity: 0 }}
         animate={{ x: 0, opacity: 1 }}
-        transition={{ duration: 0.6, ease: "easeOut" }}
-        className="hidden md:fixed md:top-6 md:left-6 md:bottom-6 md:w-64 md:flex md:flex-col z-40"
+        transition={{ duration: 0.8, ease: "easeOut" }}
+        className="hidden lg:fixed lg:inset-y-0 lg:left-0 lg:w-80 lg:flex lg:flex-col lg:z-40 lg:pt-20"
       >
-        <div className="flex flex-col flex-grow rounded-3xl bg-white/10 backdrop-blur-xl border border-white/20 shadow-2xl overflow-hidden"
-          style={{
-            backdropFilter: 'blur(20px)',
-            background: `linear-gradient(135deg, 
-              rgba(255, 255, 255, 0.1) 0%,
-              rgba(255, 255, 255, 0.05) 50%,
-              rgba(255, 255, 255, 0.1) 100%)`,
-            boxShadow: `
-              0 20px 40px rgba(0, 0, 0, 0.3),
-              0 10px 20px rgba(0, 0, 0, 0.2),
-              inset 0 1px 0 rgba(255, 255, 255, 0.2),
-              inset 0 -1px 0 rgba(255, 255, 255, 0.1)
-            `
-          }}
-        >
-          {/* Animated gradient overlay */}
-          <motion.div
-            className="absolute inset-0 rounded-3xl opacity-30"
-            animate={{
-              background: [
-                'linear-gradient(45deg, rgba(168, 85, 247, 0.1), rgba(59, 130, 246, 0.1))',
-                'linear-gradient(45deg, rgba(59, 130, 246, 0.1), rgba(236, 72, 153, 0.1))',
-                'linear-gradient(45deg, rgba(236, 72, 153, 0.1), rgba(168, 85, 247, 0.1))'
-              ]
-            }}
-            transition={{
-              duration: 8,
-              repeat: Infinity,
-              ease: "easeInOut"
-            }}
-          />
-          
-          <div className="relative flex flex-col flex-grow p-6">
-            {/* Logo Section */}
-            <motion.div 
-              initial={{ y: 20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.2 }}
-              className="mb-6 text-center"
-            >
-              <div className="w-14 h-14 mx-auto mb-3 rounded-2xl bg-gradient-to-br from-accent-400 to-accent-600 flex items-center justify-center shadow-lg">
-                <Home className="h-7 w-7 text-white" />
-              </div>
-              <h2 className="text-lg font-heading font-bold text-white">Dashboard</h2>
-              <p className="text-xs text-white/60">Welcome back, {user?.name}</p>
-            </motion.div>
-
-            {/* Navigation */}
-            <nav className="space-y-2 flex-grow">
+        <div className="flex flex-col flex-1 min-h-0 bg-white/5 backdrop-blur-xl border-r border-white/10">
+          {/* Sidebar Navigation */}
+          <div className="flex-1 flex flex-col pt-6 pb-4 overflow-y-auto">
+            <nav className="flex-1 px-4 space-y-2">
               {tabs.map((tab, index) => (
                 <motion.button
                   key={tab.id}
-                  initial={{ x: -20, opacity: 0 }}
-                  animate={{ x: 0, opacity: 1 }}
-                  transition={{ delay: 0.3 + index * 0.1 }}
-                  whileHover={{ scale: 1.02, x: 5 }}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.1 + index * 0.1 }}
+                  whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-all duration-300 font-body relative overflow-hidden ${
+                  onClick={() => handleTabChange(tab.id)}
+                  className={`group relative w-full flex items-center gap-4 px-4 py-3 text-left rounded-2xl transition-all duration-300 ${
                     activeTab === tab.id
-                      ? 'bg-gradient-to-r from-accent-500/80 to-accent-600/80 text-white shadow-lg backdrop-blur-sm'
+                      ? 'bg-gradient-to-r from-accent-500/20 to-accent-600/20 text-white border border-accent-400/30'
                       : 'text-white/70 hover:bg-white/10 hover:text-white'
                   }`}
-                  style={activeTab === tab.id ? {
-                    boxShadow: '0 10px 25px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.2)'
-                  } : {}}
                 >
                   {activeTab === tab.id && (
                     <motion.div
-                      layoutId="activeTab"
-                      className="absolute inset-0 rounded-xl bg-gradient-to-r from-accent-500/20 to-accent-600/20"
+                      layoutId="activeTabDesktop"
+                      className="absolute inset-0 bg-gradient-to-r from-accent-500/10 to-accent-600/10 rounded-2xl"
                       initial={false}
                       transition={{ type: "spring", stiffness: 500, damping: 30 }}
                     />
                   )}
-                  <tab.icon size={20} className="relative z-10" />
-                  <span className="relative z-10 font-medium text-sm">{tab.label}</span>
+                  <div className={`relative z-10 p-2 rounded-xl transition-colors ${
+                    activeTab === tab.id 
+                      ? 'bg-accent-500/20 text-accent-300' 
+                      : 'bg-white/10 text-white/60 group-hover:bg-white/20 group-hover:text-white'
+                  }`}>
+                    <tab.icon className="h-5 w-5" />
+                  </div>
+                  <div className="relative z-10 flex-1 min-w-0">
+                    <p className="text-sm font-medium">{tab.label}</p>
+                    <p className="text-xs opacity-60">{tab.description}</p>
+                  </div>
                 </motion.button>
               ))}
             </nav>
           </div>
         </div>
-      </motion.div>      
-      
-      {/* Mobile Header removed - using main Navbar instead */}
+      </motion.aside>
+
+      {/* Mobile Menu Overlay */}
+      <AnimatePresence>
+        {isMobileMenuOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="lg:hidden fixed inset-0 z-40 bg-black/50 backdrop-blur-sm"
+            onClick={() => setIsMobileMenuOpen(false)}
+          >
+            <motion.div
+              initial={{ x: '100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '100%' }}
+              transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+              className="absolute right-0 top-0 bottom-0 w-80 max-w-[85vw] bg-primary-900/95 backdrop-blur-xl border-l border-white/10 shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex flex-col h-full p-6 pt-20">
+                {/* Mobile Menu Header */}
+                <div className="mb-8">
+                  <h3 className="text-lg font-heading font-semibold text-white mb-2">Navigation</h3>
+                  <p className="text-sm text-white/60">Switch between sections</p>
+                </div>
+
+                {/* Mobile Navigation */}
+                <nav className="space-y-3 flex-1">
+                  {tabs.map((tab, index) => (
+                    <motion.button
+                      key={tab.id}
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: index * 0.1 }}
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={() => handleTabChange(tab.id)}
+                      className={`w-full flex items-center gap-4 p-4 rounded-2xl transition-all duration-300 ${
+                        activeTab === tab.id
+                          ? 'bg-gradient-to-r from-accent-500/20 to-accent-600/20 text-white border border-accent-400/30'
+                          : 'text-white/70 hover:bg-white/10 hover:text-white'
+                      }`}
+                    >
+                      <div className={`p-3 rounded-xl transition-colors ${
+                        activeTab === tab.id 
+                          ? 'bg-accent-500/20 text-accent-300' 
+                          : 'bg-white/10 text-white/60'
+                      }`}>
+                        <tab.icon className="h-5 w-5" />
+                      </div>
+                      <div className="text-left">
+                        <p className="font-medium">{tab.label}</p>
+                        <p className="text-xs opacity-60">{tab.description}</p>
+                      </div>
+                    </motion.button>
+                  ))}
+                </nav>
+
+                {/* Mobile User Info - Show on small screens */}
+                <div className="sm:hidden pt-6 border-t border-white/10">
+                  <div className="bg-white/5 rounded-xl p-4 border border-white/10 mb-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg flex items-center justify-center">
+                        <User className="h-5 w-5 text-white" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-white truncate">
+                          {user?.name}
+                        </p>
+                        <p className="text-xs text-white/60 truncate">
+                          {user?.email}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Main Content */}
-      <div className="md:pl-[280px] pt-20 md:pt-6">
-        <main className="px-0 md:px-4 pb-20 md:pb-8 min-h-screen">
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.3 }}
-            className="max-w-6xl mx-auto h-full"
-          >
-            {renderContent()}
-          </motion.div>
+      <div className="lg:pl-80 pt-20">
+        <main className="min-h-screen p-4 sm:p-6 lg:p-8 pb-24 lg:pb-8">
+          <div className="max-w-7xl mx-auto h-full">
+            <motion.div
+              key={activeTab}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.6, ease: "easeOut" }}
+              className="h-full"
+            >
+              {renderContent()}
+            </motion.div>
+          </div>
         </main>
       </div>
 
-      {/* Mobile Bottom Navigation - Floating Liquid Glass */}
+      {/* Mobile Bottom Navigation */}
       <motion.div 
         initial={{ y: 100, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
-        transition={{ duration: 0.6, delay: 0.4 }}
-        className="md:hidden fixed bottom-4 left-4 right-4 rounded-2xl overflow-hidden"
-        style={{
-          backdropFilter: 'blur(20px)',
-          background: `linear-gradient(135deg, 
-            rgba(255, 255, 255, 0.12) 0%,
-            rgba(255, 255, 255, 0.06) 50%,
-            rgba(255, 255, 255, 0.12) 100%)`,
-          boxShadow: `
-            0 15px 35px rgba(0, 0, 0, 0.3),
-            0 8px 15px rgba(0, 0, 0, 0.2),
-            inset 0 1px 0 rgba(255, 255, 255, 0.2),
-            inset 0 -1px 0 rgba(255, 255, 255, 0.1)
-          `
-        }}
+        transition={{ duration: 0.8, delay: 0.2 }}
+        className="lg:hidden fixed bottom-4 left-4 right-4 z-30"
       >
-        {/* Animated gradient overlay */}
-        <motion.div
-          className="absolute inset-0 opacity-15"
-          animate={{
-            background: [
-              'linear-gradient(45deg, rgba(168, 85, 247, 0.3), rgba(59, 130, 246, 0.3))',
-              'linear-gradient(45deg, rgba(59, 130, 246, 0.3), rgba(236, 72, 153, 0.3))',
-              'linear-gradient(45deg, rgba(236, 72, 153, 0.3), rgba(168, 85, 247, 0.3))'
-            ]
+        <div 
+          className="bg-white/10 backdrop-blur-xl rounded-2xl border border-white/20 shadow-2xl p-2"
+          style={{
+            background: `linear-gradient(135deg, 
+              rgba(255, 255, 255, 0.15) 0%,
+              rgba(255, 255, 255, 0.05) 50%,
+              rgba(255, 255, 255, 0.15) 100%)`,
           }}
-          transition={{
-            duration: 8,
-            repeat: Infinity,
-            ease: "easeInOut"
-          }}
-        />
-        
-        <div className="relative grid grid-cols-3 gap-1 p-4">
-          {tabs.map((tab, index) => (
-            <motion.button
-              key={tab.id}
-              initial={{ y: 20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.5 + index * 0.1 }}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => setActiveTab(tab.id)}
-              className={`flex flex-col items-center gap-2 py-3 px-2 rounded-xl transition-all duration-300 min-h-[60px] ${
-                activeTab === tab.id
-                  ? 'bg-gradient-to-t from-accent-500/80 to-accent-400/80 text-white shadow-lg'
-                  : 'text-white/60 hover:text-white hover:bg-white/10'
-              }`}
-              style={activeTab === tab.id ? {
-                boxShadow: '0 8px 20px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.2)'
-              } : {}}
-            >
-              {activeTab === tab.id && (
-                <motion.div
-                  layoutId="mobileActiveTab"
-                  className="absolute inset-0 rounded-xl bg-gradient-to-t from-accent-500/20 to-accent-400/20"
-                  initial={false}
-                  transition={{ type: "spring", stiffness: 500, damping: 30 }}
-                />
-              )}
-              <tab.icon size={22} className="relative z-10" />
-              <span className="text-xs font-body font-medium relative z-10 leading-tight">{tab.label}</span>
-            </motion.button>
-          ))}
+        >
+          <div className="grid grid-cols-3 gap-1">
+            {tabs.map((tab, index) => (
+              <motion.button
+                key={tab.id}
+                initial={{ y: 20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 0.3 + index * 0.1 }}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => handleTabChange(tab.id)}
+                className={`relative flex flex-col items-center gap-2 p-3 rounded-xl transition-all duration-300 ${
+                  activeTab === tab.id
+                    ? 'bg-gradient-to-t from-accent-500/30 to-accent-400/30 text-white'
+                    : 'text-white/60 hover:text-white hover:bg-white/10'
+                }`}
+              >
+                {activeTab === tab.id && (
+                  <motion.div
+                    layoutId="activeTabMobile"
+                    className="absolute inset-0 bg-gradient-to-t from-accent-500/20 to-accent-400/20 rounded-xl border border-accent-400/30"
+                    initial={false}
+                    transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                  />
+                )}
+                <tab.icon className="h-5 w-5 relative z-10" />
+                <span className="text-xs font-medium relative z-10">{tab.label}</span>
+              </motion.button>
+            ))}
+          </div>
         </div>
       </motion.div>
 
-      {/* Background Audio - Always Active */}
+      {/* Background Audio */}
       <audio
         ref={backgroundAudio.audioRef}
         onLoadedMetadata={() => {
           if (backgroundAudio.audioRef.current && backgroundAudio.currentTrack) {
             const audioDuration = backgroundAudio.audioRef.current.duration;
-            backgroundAudio.audioRef.current.volume = 0.5; // Default volume
+            backgroundAudio.audioRef.current.volume = 0.5;
             
             console.log('🎵 Background audio loaded:', {
               fileName: backgroundAudio.currentTrack?.fileName,

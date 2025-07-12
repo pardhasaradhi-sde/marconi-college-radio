@@ -23,3 +23,28 @@ dist-ssr
 *.sln
 *.sw?
 .env
+
+# Test and debug files
+test-*.js
+test-*.html
+test-*.ts
+debug-*.js
+check-*.js
+fix-*.js
+setup-*.js
+update-*.js
+init-*.js
+add-*.js
+*.test.*
+*.spec.*
+
+# Temporary files
+*.tmp
+*.bak
+*~
+.temp/
+temp/
+
+# Documentation (project-specific)
+MOBILE_OPTIMIZATION_SUMMARY.md
+OPTION*_IMPLEMENTATION.md
