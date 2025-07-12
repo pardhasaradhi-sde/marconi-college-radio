@@ -1,4 +1,3 @@
-import React from 'react';
 import { motion } from 'framer-motion';
 import { Play, Video, Radio } from 'lucide-react';
 import { Button } from '../ui/Button';
@@ -9,7 +8,7 @@ interface HeroProps {
 
 export function Hero({ onGetStarted }: HeroProps) {
   return (
-    <div className="relative min-h-screen flex items-center justify-center px-4">
+    <div className="relative min-h-screen flex items-center justify-center px-4 mobile-content-safe">
       {/* Background gradient */}
       <div className="absolute inset-0 bg-gradient-to-br from-primary-950 via-primary-900 to-accent-900" />
       
