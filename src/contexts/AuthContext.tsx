@@ -27,6 +27,7 @@ interface AuthProviderProps {
 const ADMIN_GMAILS = [
   'admin@anurag.edu.in',
   'admin2@gmail.com',
+  'gollapallisupreeth@gmail.com',
   // Add more admin gmails here
 ];
 

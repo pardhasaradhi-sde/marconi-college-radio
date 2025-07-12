@@ -1,89 +1,13 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Upload, Calendar, Users, Database, BarChart3, Menu, X, Music, Play, Pause, Megaphone } from 'lucide-react';
+import { Upload, Calendar, Users, Database, BarChart3, Menu, X, Music, Play, Pause } from 'lucide-react';
 import { UploadManager } from './UploadManager';
 import { ScheduleManager } from './ScheduleManager';
 import { UserMonitor } from './UserMonitor';
 import { BackupManager } from './BackupManager';
-import { AnnouncementManager } from './AnnouncementManager';
 import { useRadio } from '../../contexts/RadioContext';
-import { radioService } from '../../services/appwrite';
 
-type TabType = 'overview' | 'upload' | 'schedule' | 'users' | 'backup' | 'announcements';
-
-// Quick Test Component
-function QuickTestSection() {
-  const { audioFiles, scheduleTestBroadcast, cancelSchedule } = useRadio();
-  const [isScheduling, setIsScheduling] = useState(false);
-  
-  const handleTestBroadcast = async () => {
-    if (audioFiles.length === 0) {
-      alert('No audio files available. Please upload some music first.');
-      return;
-    }
-    
-    setIsScheduling(true);
-    try {
-      const firstTrack = audioFiles[0];
-      console.log('🧪 Starting test broadcast with:', firstTrack.songName);
-      await scheduleTestBroadcast(firstTrack.$id, 10); // 10 minute test
-      alert(`Test broadcast scheduled! Playing "${firstTrack.songName}" for 10 minutes.`);
-    } catch (error) {
-      console.error('Test broadcast failed:', error);
-      alert('Failed to schedule test broadcast');
-    } finally {
-      setIsScheduling(false);
-    }
-  };
-  
-  const handleStopTest = async () => {
-    try {
-      await cancelSchedule();
-      alert('Test broadcast stopped');
-    } catch (error) {
-      console.error('Stop test failed:', error);
-      alert('Failed to stop test broadcast');
-    }
-  };
-  
-  const handleForceCheck = async () => {
-    try {
-      console.log('🔧 Manually checking scheduled broadcast...');
-      await radioService.checkAndStartScheduledBroadcast();
-      alert('Manual broadcast check completed - check console for details');
-    } catch (error) {
-      console.error('Manual check failed:', error);
-      alert('Manual check failed');
-    }
-  };
-  
-  return (
-    <div className="flex gap-4 flex-wrap">
-      <button
-        onClick={handleTestBroadcast}
-        disabled={isScheduling || audioFiles.length === 0}
-        className="px-4 py-2 bg-yellow-500 text-black rounded-lg font-medium hover:bg-yellow-400 disabled:opacity-50 disabled:cursor-not-allowed"
-      >
-        {isScheduling ? 'Scheduling...' : 'Start Test Broadcast'}
-      </button>
-      <button
-        onClick={handleStopTest}
-        className="px-4 py-2 bg-red-500 text-white rounded-lg font-medium hover:bg-red-400"
-      >
-        Stop Test
-      </button>
-      <button
-        onClick={handleForceCheck}
-        className="px-4 py-2 bg-blue-500 text-white rounded-lg font-medium hover:bg-blue-400"
-      >
-        Force Check
-      </button>
-      <div className="text-white/60 text-sm self-center">
-        {audioFiles.length} tracks available
-      </div>
-    </div>
-  );
-}
+type TabType = 'overview' | 'upload' | 'schedule' | 'users' | 'backup';
 
 export function AdminDashboard() {
   const [activeTab, setActiveTab] = useState<TabType>('schedule');
@@ -95,7 +19,6 @@ export function AdminDashboard() {
     { id: 'schedule' as TabType, label: 'Schedule Radio', icon: Calendar },
     { id: 'upload' as TabType, label: 'Upload Music', icon: Upload },
     { id: 'users' as TabType, label: 'Users', icon: Users },
-    { id: 'announcements' as TabType, label: 'Announcements', icon: Megaphone },
     { id: 'backup' as TabType, label: 'Backup', icon: Database },
   ];
 
@@ -227,13 +150,6 @@ export function AdminDashboard() {
                 <li>• Perfect for unattended radio operation like a real radio station</li>
               </ul>
             </div>
-
-            {/* Quick Test Section for Debugging */}
-            <div className="bg-yellow-500/10 backdrop-blur-sm rounded-2xl p-6 border border-yellow-500/20">
-              <h3 className="text-xl font-bold text-yellow-400 mb-4">🧪 Quick Test (Debug)</h3>
-              <p className="text-white/70 mb-4">Test the radio sync functionality with a sample broadcast</p>
-              <QuickTestSection />
-            </div>
           </div>
         );
       case 'upload':
@@ -242,8 +158,6 @@ export function AdminDashboard() {
         return <ScheduleManager />;
       case 'users':
         return <UserMonitor />;
-      case 'announcements':
-        return <AnnouncementManager />;
       case 'backup':
         return <BackupManager />;
       default:

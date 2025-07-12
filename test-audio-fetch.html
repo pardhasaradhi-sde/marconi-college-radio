@@ -1,0 +1,61 @@
+// Simple HTML test page to verify audio files can be fetched from frontend
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Audio Files Test</title>
+</head>
+<body>
+    <h1>Audio Files Test</h1>
+    <div id="output"></div>
+    
+    <script type="module">
+        import { Client, Account, Databases, Query } from 'https://cdn.jsdelivr.net/npm/appwrite@16.0.2/+esm';
+        
+        const client = new Client()
+            .setEndpoint('https://nyc.cloud.appwrite.io/v1')
+            .setProject('685e439700344bac94ff');
+        
+        const account = new Account(client);
+        const databases = new Databases(client);
+        
+        const output = document.getElementById('output');
+        
+        async function testAudioFiles() {
+            try {
+                output.innerHTML += '<p>🔄 Testing audio file fetch...</p>';
+                
+                // Try to get current user first
+                let user = null;
+                try {
+                    user = await account.get();
+                    output.innerHTML += `<p>✅ Logged in as: ${user.email}</p>`;
+                } catch (authError) {
+                    output.innerHTML += '<p>❌ Not logged in</p>';
+                    return;
+                }
+                
+                // Try to fetch audio files
+                const response = await databases.listDocuments(
+                    '685e441b000cf8d070f6',
+                    '685e474f0013af2bc466',
+                    [Query.orderDesc('uploadedAt')]
+                );
+                
+                output.innerHTML += `<p>✅ Successfully fetched ${response.documents.length} audio files:</p>`;
+                response.documents.forEach((doc, index) => {
+                    output.innerHTML += `<p>${index + 1}. ${doc.songName || doc.fileName} by ${doc.artist || 'Unknown'}</p>`;
+                });
+                
+            } catch (error) {
+                output.innerHTML += `<p>❌ Error: ${error.message}</p>`;
+                console.error('Test error:', error);
+            }
+        }
+        
+        // Run test when page loads
+        testAudioFiles();
+    </script>
+</body>
+</html>

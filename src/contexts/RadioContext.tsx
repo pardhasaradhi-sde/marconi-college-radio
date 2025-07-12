@@ -10,12 +10,13 @@ interface RadioContextType {
   
   // Admin controls
   uploadAudio: (file: File, metadata: { songName: string; artist: string }, coverImage?: File) => Promise<void>;
-  playTrack: (audioFile: AudioFile) => Promise<void>;
-  pauseTrack: () => Promise<void>;
-  resumeTrack: () => Promise<void>;
-  stopTrack: () => Promise<void>;
-  updateCurrentTime: (time: number) => Promise<void>;
   deleteAudio: (audioId: string, fileId: string) => Promise<void>;
+  
+  // Scheduling controls
+  scheduleRadio: (trackId: string, startTime: string, endTime: string) => Promise<void>;
+  scheduleTestBroadcast: (trackId: string, durationMinutes?: number) => Promise<void>; // DEBUG helper
+  cancelSchedule: () => Promise<void>;
+  getScheduledBroadcasts: () => Promise<any[]>;
   
   // User controls
   refreshAudioFiles: () => Promise<void>;
@@ -84,37 +85,67 @@ export function RadioProvider({ children }: RadioProviderProps) {
       try {
         if (!isMounted) return;
         
+        // Add a small delay to ensure Appwrite client is ready
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        if (!isMounted) return;
+        
         subscriptionRef.current = radioService.subscribeToRadioState((newState) => {
           if (!isMounted) return;
           
           setRadioState(newState);
           
-          // Sync audio element with new state
-          if (audioRef && newState.currentTrack) {
-            if (newState.isPlaying) {
-              audioRef.currentTime = newState.currentTime;
-              audioRef.play().catch(console.error);
-            } else {
-              audioRef.pause();
-            }
-          }
+          // Note: Audio sync is now handled by individual StreamPlayer components
+          // using time-based calculation, not real-time currentTime updates
         });
+        
+        console.log('Radio state subscription set up successfully');
       } catch (error) {
         console.error('Failed to setup radio state subscription:', error);
+        
+        // Fallback to polling if real-time fails
+        console.log('Setting up polling fallback...');
+        const pollInterval = setInterval(async () => {
+          if (!isMounted) return;
+          
+          try {
+            const currentState = await radioService.getCurrentRadioState();
+            if (currentState && isMounted) {
+              setRadioState(currentState);
+            }
+          } catch (pollError) {
+            console.error('Polling error:', pollError);
+          }
+        }, 3000); // Poll every 3 seconds
+        
+        // Store poll interval for cleanup
+        subscriptionRef.current = () => clearInterval(pollInterval);
       }
     };
 
     setupSubscription();
 
+    // Auto-check for scheduled broadcasts every 10 seconds for better responsiveness
+    const scheduleCheckInterval = setInterval(async () => {
+      try {
+        console.log('🔄 Checking scheduled broadcasts...');
+        await radioService.checkAndStartScheduledBroadcast();
+      } catch (error) {
+        console.error('Failed to check scheduled broadcasts:', error);
+      }
+    }, 10000); // Check every 10 seconds
+
     return () => {
+      setIsLoading(false);
       isMounted = false;
+      
+      // Clear the schedule check interval
+      clearInterval(scheduleCheckInterval);
+      
+      // Cleanup subscription
       if (subscriptionRef.current) {
-        try {
-          subscriptionRef.current();
-          subscriptionRef.current = null;
-        } catch (error) {
-          console.error('Error unsubscribing from radio state:', error);
-        }
+        subscriptionRef.current();
+        subscriptionRef.current = null;
       }
     };  }, [user, audioRef]);
 
@@ -127,61 +158,6 @@ export function RadioProvider({ children }: RadioProviderProps) {
       setAudioFiles(prev => [uploadedFile, ...prev]);
     } catch (error) {
       console.error('Upload failed:', error);
-      throw error;
-    }
-  };
-
-  const playTrack = async (audioFile: AudioFile) => {
-    if (user?.role !== 'admin') throw new Error('Only admins can control playback');
-    
-    try {
-      await radioService.playTrack(audioFile);
-    } catch (error) {
-      console.error('Play track failed:', error);
-      throw error;
-    }
-  };
-
-  const pauseTrack = async () => {
-    if (user?.role !== 'admin') throw new Error('Only admins can control playback');
-    
-    try {
-      await radioService.pauseTrack();
-    } catch (error) {
-      console.error('Pause track failed:', error);
-      throw error;
-    }
-  };
-
-  const resumeTrack = async () => {
-    if (user?.role !== 'admin') throw new Error('Only admins can control playback');
-    
-    try {
-      await radioService.resumeTrack();
-    } catch (error) {
-      console.error('Resume track failed:', error);
-      throw error;
-    }
-  };
-
-  const stopTrack = async () => {
-    if (user?.role !== 'admin') throw new Error('Only admins can control playback');
-    
-    try {
-      await radioService.stopTrack();
-    } catch (error) {
-      console.error('Stop track failed:', error);
-      throw error;
-    }
-  };
-
-  const updateCurrentTime = async (time: number) => {
-    if (user?.role !== 'admin') throw new Error('Only admins can control playback');
-    
-    try {
-      await radioService.updateCurrentTime(time);
-    } catch (error) {
-      console.error('Update time failed:', error);
       throw error;
     }
   };
@@ -208,6 +184,52 @@ export function RadioProvider({ children }: RadioProviderProps) {
     }
   };
 
+  // Scheduling functions
+  const scheduleRadio = async (trackId: string, startTime: string, endTime: string) => {
+    if (user?.role !== 'admin') throw new Error('Only admins can schedule broadcasts');
+    
+    try {
+      await radioService.scheduleRadio(trackId, startTime, endTime);
+    } catch (error) {
+      console.error('Schedule broadcast failed:', error);
+      throw error;
+    }
+  };
+
+  const scheduleTestBroadcast = async (trackId: string, durationMinutes: number = 30) => {
+    if (user?.role !== 'admin') throw new Error('Only admins can schedule broadcasts');
+    
+    try {
+      await radioService.scheduleTestBroadcast(trackId, durationMinutes);
+    } catch (error) {
+      console.error('Schedule test broadcast failed:', error);
+      throw error;
+    }
+  };
+
+  const cancelSchedule = async () => {
+    if (user?.role !== 'admin') throw new Error('Only admins can cancel broadcasts');
+    
+    try {
+      await radioService.cancelSchedule();
+    } catch (error) {
+      console.error('Cancel scheduled broadcast failed:', error);
+      throw error;
+    }
+  };
+
+  const getScheduledBroadcasts = async () => {
+    if (user?.role !== 'admin') throw new Error('Only admins can view scheduled broadcasts');
+    
+    try {
+      // For now, return empty array since we don't have a getScheduledBroadcasts method yet
+      return [];
+    } catch (error) {
+      console.error('Get scheduled broadcasts failed:', error);
+      throw error;
+    }
+  };
+
   return (
     <RadioContext.Provider
       value={{
@@ -215,13 +237,12 @@ export function RadioProvider({ children }: RadioProviderProps) {
         audioFiles,
         isLoading,
         uploadAudio,
-        playTrack,
-        pauseTrack,
-        resumeTrack,
-        stopTrack,
-        updateCurrentTime,
         deleteAudio,
         refreshAudioFiles,
+        scheduleRadio,
+        scheduleTestBroadcast,
+        cancelSchedule,
+        getScheduledBroadcasts,
         audioRef,
         setAudioRef,
       }}
