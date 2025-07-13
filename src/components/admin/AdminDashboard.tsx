@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { account } from '../../services/appwrite';
 import { motion } from 'framer-motion';
 import { Upload, Calendar, Users, Database, BarChart3, Menu, X, Music, Play, Pause, Megaphone } from 'lucide-react';
 import { UploadManager } from './UploadManager';
@@ -89,6 +91,20 @@ export function AdminDashboard() {
   const [activeTab, setActiveTab] = useState<TabType>('schedule');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { radioState, audioFiles } = useRadio();
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    try {
+      await account.deleteSession('current');
+    } catch (error) {
+      // Ignore 401 errors (already logged out)
+      if (!(error && typeof error === 'object' && 'code' in error && (error as any).code === 401)) {
+        console.error('Logout failed:', error);
+      }
+    } finally {
+      navigate('/');
+    }
+  };
 
   const tabs = [
     { id: 'overview' as TabType, label: 'Overview', icon: BarChart3 },
@@ -273,6 +289,14 @@ export function AdminDashboard() {
                 </button>
               ))}
             </nav>
+            {/* Logout button below nav */}
+            <button
+              className="w-full mt-6 flex items-center gap-3 px-4 py-3 rounded-xl text-left font-body bg-red-500 text-white hover:bg-red-600 transition-colors"
+              onClick={handleLogout}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a2 2 0 01-2 2H7a2 2 0 01-2-2V7a2 2 0 012-2h4a2 2 0 012 2v1" /></svg>
+              Logout
+            </button>
           </div>
         </div>
       </div>
