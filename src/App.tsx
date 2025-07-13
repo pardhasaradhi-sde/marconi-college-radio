@@ -1,31 +1,23 @@
 import { useState, useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { StreamProvider } from './contexts/StreamContext';
 import { RadioProvider } from './contexts/RadioContext';
-import { Navbar } from './components/layout/Navbar';
 import { LandingPage } from './components/LandingPage';
 import { LoginModal } from './components/auth/LoginModal';
 import { UserDashboard } from './components/dashboard/UserDashboard';
 import { AdminDashboard } from './components/admin/AdminDashboard';
 
-function AppContent() {
+function AppRoutes() {
   const { user, isLoading } = useAuth();
   const [showLoginModal, setShowLoginModal] = useState(false);
 
-  // Redirect logic for admin/user
   useEffect(() => {
-    if (user && user.role === 'admin') {
-      window.history.replaceState({}, '', '/admin');
-    } else if (user && user.role === 'user') {
-      window.history.replaceState({}, '', '/dashboard');
-    }
+    // This effect can handle initial route checks if needed
   }, [user]);
 
   const handleGetStart = () => {
-    if (user) {
-      // User is already logged in, no need to show modal
-      return;
-    }
+    if (user) return;
     setShowLoginModal(true);
   };
 
@@ -40,24 +32,25 @@ function AppContent() {
     );
   }
 
-  if (!user) {
-    return (
-      <>
-        <Navbar onLoginClick={() => setShowLoginModal(true)} />
-        <LandingPage onGetStarted={handleGetStart} />
+  return (
+    <>
+      <Routes>
+        <Route path="/" element={<LandingPage onGetStarted={handleGetStart} />} />
+        {user ? (
+          <>
+            <Route path="/dashboard" element={<UserDashboard />} />
+            <Route path="/admin" element={user.role === 'admin' ? <AdminDashboard /> : <Navigate to="/dashboard" />} />
+            <Route path="*" element={<Navigate to={user.role === 'admin' ? '/admin' : '/dashboard'} />} />
+          </>
+        ) : (
+          <Route path="*" element={<Navigate to="/" />} />
+        )}
+      </Routes>
+      {!user && (
         <LoginModal 
           isOpen={showLoginModal} 
           onClose={() => setShowLoginModal(false)} 
         />
-      </>
-    );
-  }
-  return (
-    <>
-      {user.role === 'admin' ? (
-        <AdminDashboard />
-      ) : (
-        <UserDashboard />
       )}
     </>
   );
@@ -65,13 +58,15 @@ function AppContent() {
 
 function App() {
   return (
-    <AuthProvider>
-      <RadioProvider>
-        <StreamProvider>
-          <AppContent />
-        </StreamProvider>
-      </RadioProvider>
-    </AuthProvider>
+    <Router>
+      <AuthProvider>
+        <RadioProvider>
+          <StreamProvider>
+            <AppRoutes />
+          </StreamProvider>
+        </RadioProvider>
+      </AuthProvider>
+    </Router>
   );
 }
 

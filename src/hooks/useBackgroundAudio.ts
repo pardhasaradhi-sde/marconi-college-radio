@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRadio } from '../contexts/RadioContext';
-import { radioService } from '../services/appwrite';
+import { radioService, audioService } from '../services/appwrite';
 
 export function useBackgroundAudio() {
   const { radioState, audioFiles } = useRadio();
@@ -11,6 +11,34 @@ export function useBackgroundAudio() {
 
   const currentTrack = radioState?.currentTrack;
   const isBroadcastActive = radioState?.isPlaying && currentTrack;
+
+  // Effect to handle audio duration updates
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    const handleDurationChange = async () => {
+      const duration = audio.duration;
+      const trackInState = audioFiles.find(f => f.fileUrl === audio.src);
+
+      if (trackInState && duration && !isNaN(duration) && duration > 0 && duration !== trackInState.duration) {
+        console.log(`Updating duration for ${trackInState.songName}: ${duration}`);
+        try {
+          // Update the duration in the database
+          await audioService.updateAudioFile(trackInState.$id, { duration });
+          // Note: The change will propagate via real-time updates, so no local state change is needed here.
+        } catch (error) {
+          console.error("Failed to update audio duration:", error);
+        }
+      }
+    };
+
+    audio.addEventListener('durationchange', handleDurationChange);
+    return () => {
+      audio.removeEventListener('durationchange', handleDurationChange);
+    };
+  }, [currentTrack, audioFiles]);
+
 
   // Calculate current broadcast position based on time elapsed since broadcast started
   const calculateCurrentPosition = (): number => {
@@ -53,6 +81,7 @@ export function useBackgroundAudio() {
     if (!audioRef.current || !isBroadcastActive || isUserPaused) return;
 
     if (audioRef.current.readyState < 2) {
+      console.log('Audio not ready for sync, state:', audioRef.current.readyState);
       return;
     }
 
@@ -67,16 +96,20 @@ export function useBackgroundAudio() {
 
     if (difference > 2) {
       audioRef.current.currentTime = targetPosition;
-      console.log(`🔄 Synced audio: ${targetPosition.toFixed(1)}s (diff: ${difference.toFixed(1)}s)`);
+      console.log(`🔄 [Sync] Audio position synced to ${targetPosition.toFixed(1)}s (Difference: ${difference.toFixed(1)}s)`);
     }
   };
 
   // Sync on mount and when track changes
   useEffect(() => {
+    console.log('[Effect] Track or broadcast state changed.', { currentTrack, isBroadcastActive, isUserPaused });
+
     if (!currentTrack) {
       setIsPlaying(false);
       if (audioRef.current) {
+        console.log('[Effect] No current track. Pausing audio.');
         audioRef.current.pause();
+        audioRef.current.src = ''; // Clear src
       }
       if (syncIntervalRef.current) {
         clearInterval(syncIntervalRef.current);
@@ -85,25 +118,39 @@ export function useBackgroundAudio() {
       return;
     }
 
-    if (audioRef.current && currentTrack) {
+    if (audioRef.current) {
       const audioSrc = currentTrack.fileUrl;
       if (audioRef.current.src !== audioSrc) {
+        console.log(`[Effect] New track detected. Setting src to: ${audioSrc}`);
         audioRef.current.src = audioSrc;
         audioRef.current.load();
       }
 
       const handleCanPlay = () => {
+        console.log('[Event] "canplay" event fired.');
         if (audioRef.current && !isUserPaused && isBroadcastActive) {
+          console.log('[Action] Conditions met. Attempting to play.');
           syncAudioPosition();
           audioRef.current.play().then(() => {
+            console.log('✅ [Success] Playback started successfully.');
             setIsPlaying(true);
-          }).catch(console.error);
+          }).catch(error => {
+            console.error('❌ [Error] Playback failed:', error);
+            // This can happen due to browser autoplay policies.
+            // We'll set isUserPaused to true to show the play button.
+            setIsUserPaused(true);
+            setIsPlaying(false);
+          });
+        } else {
+          console.log('[Info] Conditions for play not met.', { isUserPaused, isBroadcastActive });
         }
       };
 
       audioRef.current.addEventListener('canplay', handleCanPlay);
       
       if (isBroadcastActive) {
+        if (syncIntervalRef.current) clearInterval(syncIntervalRef.current);
+        console.log('[Effect] Broadcast is active. Setting up sync interval.');
         syncIntervalRef.current = setInterval(syncAudioPosition, 5000);
       }
 
@@ -120,18 +167,22 @@ export function useBackgroundAudio() {
   }, [currentTrack, isBroadcastActive, isUserPaused]);
 
   const handlePause = () => {
+    console.log('[Action] User paused playback.');
     setIsUserPaused(true);
     setIsPlaying(false);
     if (audioRef.current) audioRef.current.pause();
   };
 
   const handleResume = () => {
+    console.log('[Action] User resumed playback.');
     setIsUserPaused(false);
     if (audioRef.current && currentTrack) {
       syncAudioPosition();
       audioRef.current.play().then(() => {
         setIsPlaying(true);
-      }).catch(console.error);
+      }).catch(error => {
+        console.error('❌ [Error] Resume failed:', error);
+      });
     }
   };
 

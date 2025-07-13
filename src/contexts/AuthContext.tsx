@@ -14,6 +14,7 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<boolean>;
   register: (email: string, password: string, name: string) => Promise<boolean>;
   logout: () => void;
+  updateUserName: (name: string) => Promise<boolean>;
   isLoading: boolean;
 }
 
@@ -59,6 +60,19 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
     checkUser();
   }, []);
+
+  const updateUserName = async (name: string): Promise<boolean> => {
+    if (!user) return false;
+    try {
+      await authService.updateName(name);
+      const updatedUser = { ...user, name };
+      setUser(updatedUser);
+      return true;
+    } catch (error) {
+      console.error('Failed to update user name:', error);
+      return false;
+    }
+  };
 
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
@@ -134,13 +148,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   };
   return (
-    <AuthContext.Provider value={{ user, login, register, logout, isLoading }}>
+    <AuthContext.Provider value={{ user, login, register, logout, isLoading, updateUserName }}>
       {children}
     </AuthContext.Provider>
   );
 }
 
-export function useAuth() {
+export const useAuth = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {
     throw new Error('useAuth must be used within an AuthProvider');

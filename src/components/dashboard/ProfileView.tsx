@@ -1,126 +1,166 @@
-import { User, Mail, Monitor, LogOut, Shield } from 'lucide-react';
+import { User, Mail, LogOut, Shield, Edit3, X, Check } from 'lucide-react';
 import { Card } from '../ui/Card';
 import { Button } from '../ui/Button';
 import { useAuth } from '../../contexts/AuthContext';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useState } from 'react';
+import { Input } from '../ui/Input';
+import { Toast } from '../ui/Toast';
 
 export function ProfileView() {
-  const { user, logout } = useAuth();
+  const { user, logout, updateUserName } = useAuth();
+  const [isEditing, setIsEditing] = useState(false);
+  const [newName, setNewName] = useState(user?.name || '');
+  const [isSaving, setIsSaving] = useState(false);
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
   if (!user) return null;
 
+  const handleSave = async () => {
+    if (newName.trim() === '' || newName === user.name) {
+      setIsEditing(false);
+      return;
+    }
+    setIsSaving(true);
+    const success = await updateUserName(newName);
+    if (success) {
+      setToast({ message: 'Username updated successfully!', type: 'success' });
+    } else {
+      setToast({ message: 'Failed to update username.', type: 'error' });
+      setNewName(user.name); // Revert on failure
+    }
+    setIsSaving(false);
+    setIsEditing(false);
+  };
+
   return (
-    <div className="w-full max-w-none space-y-4 sm:space-y-6 px-0 pb-4">
+    <motion.div 
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+      className="w-full max-w-none space-y-6 sm:space-y-8 px-0 pb-4 relative"
+    >
+      <AnimatePresence>
+        {toast && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="absolute top-0 left-1/2 -translate-x-1/2 z-50"
+          >
+            <Toast 
+              message={toast.message} 
+              type={toast.type} 
+              onClose={() => setToast(null)} 
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Header */}
-      <div className="text-center lg:text-left px-4 lg:px-0">
-        <h2 className="text-xl sm:text-2xl lg:text-3xl font-heading font-bold text-white mb-2">Profile</h2>
-        <p className="text-sm sm:text-base text-white/60 font-body">Manage your account and preferences</p>
+      <div className="text-center px-4">
+        <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-heading font-bold text-white mb-3 sm:mb-4">
+          Your Profile
+        </h1>
+        <p className="text-base sm:text-lg md:text-xl text-white/60 font-body">Manage your account details and preferences</p>
       </div>
 
       {/* Main Profile Content */}
-      <div className="grid gap-4 sm:gap-6 lg:gap-8 px-4 lg:px-0 lg:grid-cols-3 xl:grid-cols-12">
-        {/* Profile Info - Takes more space on desktop */}
-        <div className="lg:col-span-2 xl:col-span-5">
-          <Card glass className="h-full p-4 sm:p-6">
-            <div className="flex flex-col items-center lg:items-start gap-4 mb-4 sm:mb-6">
-              <div className="w-20 h-20 sm:w-24 sm:h-24 lg:w-28 lg:h-28 bg-gradient-to-br from-accent-500 to-accent-600 rounded-full flex items-center justify-center flex-shrink-0 shadow-xl">
-                <User className="h-10 w-10 sm:h-12 sm:w-12 lg:h-14 lg:w-14 text-white" />
-              </div>
-              <div className="text-center lg:text-left">
-                <h3 className="text-xl sm:text-2xl lg:text-3xl font-heading font-semibold text-white mb-2">{user.name}</h3>
-                <p className="text-base sm:text-lg text-white/60 font-body">{user.role === 'admin' ? 'Administrator' : 'Student'}</p>
-              </div>
+      <div className="max-w-4xl mx-auto">
+        <Card glass className="p-6 sm:p-8 lg:p-10">
+          <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6 sm:gap-8 mb-8">
+            <motion.div
+              whileHover={{ scale: 1.05 }}
+              className="w-24 h-24 sm:w-28 sm:h-28 lg:w-32 lg:h-32 bg-gradient-to-br from-accent-500 to-accent-600 rounded-full flex items-center justify-center flex-shrink-0 shadow-2xl"
+            >
+              <User className="h-12 w-12 sm:h-14 sm:h-14 lg:h-16 lg:w-16 text-white" />
+            </motion.div>
+            <div className="text-center sm:text-left flex-1">
+              <AnimatePresence mode="wait">
+                {isEditing ? (
+                  <motion.div
+                    key="edit-input"
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 10 }}
+                  >
+                    <Input
+                      type="text"
+                      value={newName}
+                      onChange={(e) => setNewName(e.target.value)}
+                      className="text-2xl sm:text-3xl lg:text-4xl font-heading font-semibold !bg-white/10 !text-white"
+                      autoFocus
+                    />
+                  </motion.div>
+                ) : (
+                  <motion.h3 
+                    key="display-name"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    className="text-2xl sm:text-3xl lg:text-4xl font-heading font-semibold text-white mb-2"
+                  >
+                    {user.name}
+                  </motion.h3>
+                )}
+              </AnimatePresence>
+              <p className="text-lg sm:text-xl text-white/60 font-body capitalize">{user.role === 'admin' ? 'Administrator' : 'Student'}</p>
             </div>
-
-            <div className="space-y-4 sm:space-y-6">
-              <div className="flex flex-col lg:flex-row lg:items-center gap-3 lg:gap-4 text-white/80">
-                <Mail size={20} className="text-accent-400 flex-shrink-0" />
-                <div className="min-w-0 flex-1">
-                  <p className="font-body text-sm sm:text-base text-white/60 mb-1">Email Address</p>
-                  <p className="font-body text-base sm:text-lg text-white break-all lg:break-normal">{user.email}</p>
-                </div>
-              </div>
-              
-              <div className="flex flex-col lg:flex-row lg:items-center gap-3 lg:gap-4 text-white/80">
-                <Shield size={20} className="text-accent-400 flex-shrink-0" />
-                <div>
-                  <p className="font-body text-sm sm:text-base text-white/60 mb-1">Account Type</p>
-                  <p className="font-body text-base sm:text-lg text-white capitalize">{user.role}</p>
-                </div>
-              </div>
-            </div>
-          </Card>
-        </div>
-
-        {/* Active Sessions */}
-        <div className="xl:col-span-4">
-          <Card glass className="h-full p-4 sm:p-6">
-            <h3 className="text-lg sm:text-xl lg:text-2xl font-heading font-semibold text-white mb-4 sm:mb-6">Active Sessions</h3>
-            
-            <div className="space-y-3 sm:space-y-4">
-              <div className="flex items-center justify-between p-4 bg-white/5 rounded-xl border border-white/10">
-                <div className="flex items-center gap-3 min-w-0 flex-1">
-                  <Monitor size={20} className="text-green-400 flex-shrink-0" />
-                  <div className="min-w-0 flex-1">
-                    <p className="font-body text-white text-sm sm:text-base font-medium">Current Session</p>
-                    <p className="font-body text-white/60 text-xs sm:text-sm truncate">Chrome on Windows</p>
-                  </div>
-                </div>
-                <span className="text-green-400 text-xs sm:text-sm font-medium bg-green-400/10 px-2 py-1 rounded-lg flex-shrink-0">Active</span>
-              </div>
-              
-              {user.sessions?.slice(1).map((session, index) => (
-                <div key={session} className="flex items-center justify-between p-4 bg-white/5 rounded-xl border border-white/10">
-                  <div className="flex items-center gap-3 min-w-0 flex-1">
-                    <Monitor size={20} className="text-white/60 flex-shrink-0" />
-                    <div className="min-w-0 flex-1">
-                      <p className="font-body text-white text-sm sm:text-base">Session {index + 2}</p>
-                      <p className="font-body text-white/60 text-xs sm:text-sm truncate">Mobile Device</p>
-                    </div>
-                  </div>
-                  <Button variant="ghost" size="sm" className="text-xs sm:text-sm flex-shrink-0 hover:bg-red-500/10 hover:text-red-300">
-                    Sign Out
+            <AnimatePresence mode="wait">
+              {isEditing ? (
+                <motion.div key="save-cancel-buttons" className="flex gap-2">
+                  <Button onClick={handleSave} variant="primary" size="sm" disabled={isSaving}>
+                    {isSaving ? 'Saving...' : <Check size={16} />}
                   </Button>
-                </div>
-              ))}
-            </div>
+                  <Button onClick={() => setIsEditing(false)} variant="ghost" size="sm">
+                    <X size={16} />
+                  </Button>
+                </motion.div>
+              ) : (
+                <motion.button 
+                  key="edit-button"
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => setIsEditing(true)}
+                  className="bg-white/10 hover:bg-white/20 text-white font-medium py-2 px-4 rounded-lg flex items-center gap-2 transition-colors"
+                >
+                  <Edit3 size={16} />
+                  <span>Edit Profile</span>
+                </motion.button>
+              )}
+            </AnimatePresence>
+          </div>
 
-            <div className="mt-4 sm:mt-6 pt-4 sm:pt-6 border-t border-white/10">
-              <p className="text-white/60 text-xs sm:text-sm font-body">
-                You can be signed in on up to 5 devices simultaneously.
-              </p>
+          <div className="space-y-6 border-t border-white/10 pt-8">
+            <div className="flex items-start gap-4 text-white/80">
+              <Mail size={20} className="text-accent-400 flex-shrink-0 mt-1" />
+              <div className="min-w-0 flex-1">
+                <p className="font-body text-sm text-white/60 mb-1">Email Address</p>
+                <p className="font-body text-lg text-white break-all">{user.email}</p>
+              </div>
             </div>
-          </Card>
-        </div>
-
-        {/* Account Actions */}
-        <div className="xl:col-span-3">
-          <Card glass className="h-full p-4 sm:p-6">
-            <h3 className="text-lg sm:text-xl lg:text-2xl font-heading font-semibold text-white mb-4 sm:mb-6">Account Actions</h3>
             
-            <div className="flex flex-col gap-3 sm:gap-4">
-              <Button variant="secondary" size="lg" className="w-full text-sm sm:text-base justify-start">
-                Change Preferences
-              </Button>
-              <Button variant="secondary" size="lg" className="w-full text-sm sm:text-base justify-start">
-                Download Data
-              </Button>
-              <Button variant="danger" size="lg" icon={LogOut} onClick={logout} className="w-full text-sm sm:text-base justify-start">
-                Sign Out
-              </Button>
+            <div className="flex items-start gap-4 text-white/80">
+              <Shield size={20} className="text-accent-400 flex-shrink-0 mt-1" />
+              <div>
+                <p className="font-body text-sm text-white/60 mb-1">Account Type</p>
+                <p className="font-body text-lg text-white capitalize">{user.role}</p>
+              </div>
             </div>
+          </div>
 
-            {/* Additional Info */}
-            <div className="mt-6 pt-6 border-t border-white/10">
-              <p className="text-white/60 text-xs sm:text-sm font-body mb-2">
-                Need help?
-              </p>
-              <Button variant="ghost" size="sm" className="text-xs sm:text-sm text-accent-400 hover:text-accent-300 p-0 h-auto">
-                Contact Support
-              </Button>
-            </div>
-          </Card>
-        </div>
+          <div className="mt-10 pt-8 border-t border-white/10 flex justify-end">
+            <Button 
+              onClick={logout} 
+              variant="danger" 
+              className="flex items-center gap-2"
+            >
+              <LogOut size={18} />
+              <span>Sign Out</span>
+            </Button>
+          </div>
+        </Card>
       </div>
-    </div>
+    </motion.div>
   );
 }

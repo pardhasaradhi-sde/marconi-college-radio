@@ -8,6 +8,7 @@ interface InputProps {
   className?: string;
   disabled?: boolean;
   required?: boolean;
+  autoFocus?: boolean;
 }
 
 export function Input({
@@ -17,7 +18,8 @@ export function Input({
   onChange,
   className = '',
   disabled = false,
-  required = false
+  required = false,
+  autoFocus = false
 }: InputProps) {
   return (
     <input
@@ -27,6 +29,7 @@ export function Input({
       onChange={onChange}
       disabled={disabled}
       required={required}
+      autoFocus={autoFocus}
       className={`w-full px-4 py-3 rounded-xl bg-white/10 backdrop-blur-sm border border-white/20 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-accent-500 focus:border-transparent transition-all duration-200 ${className}`}
     />
   );

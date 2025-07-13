@@ -107,6 +107,16 @@ export const authService = {  // Login with email and password
       console.error('Logout error:', error);
       throw error;
     }
+  },
+
+  // Update user name
+  async updateName(name: string) {
+    try {
+      return await account.updateName(name);
+    } catch (error) {
+      console.error('Update name error:', error);
+      throw error;
+    }
   }
 };
 
@@ -196,6 +206,21 @@ export const audioService = {  // Upload audio file
       throw error;
     }
   },
+  // Update audio file metadata
+  async updateAudioFile(audioId: string, updates: Partial<Pick<AudioFile, 'duration' | 'songName' | 'artist'>>) {
+    try {
+      return await databases.updateDocument(
+        DATABASE_ID,
+        AUDIO_FILES_COLLECTION_ID,
+        audioId,
+        updates
+      );
+    } catch (error) {
+      console.error(`Failed to update audio file ${audioId}:`, error);
+      throw error;
+    }
+  },
+
   // Delete audio file
   async deleteAudio(audioId: string, fileId: string) {
     let storageDeleteError = null;
