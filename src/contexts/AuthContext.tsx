@@ -142,8 +142,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
     try {
       await authService.logout();
       setUser(null);
-    } catch (error) {
-      console.error('Logout error:', error);
+    } catch (error: any) {
+      // Suppress 401 Unauthorized errors (session already invalid)
+      if (error && (error.status === 401 || error.code === 401 || (error.message && error.message.toLowerCase().includes('unauthorized')))) {
+        // Do not log 401 errors
+      } else {
+        console.error('Logout error:', error);
+      }
       setUser(null); // Force logout even if Appwrite call fails
     }
   };

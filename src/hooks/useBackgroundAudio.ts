@@ -18,13 +18,13 @@ export function useBackgroundAudio() {
     if (!audio) return;
 
     const handleDurationChange = async () => {
-      const duration = audio.duration;
+      const duration = Math.round(audio.duration);
       const trackInState = audioFiles.find(f => f.fileUrl === audio.src);
 
       if (trackInState && duration && !isNaN(duration) && duration > 0 && duration !== trackInState.duration) {
         console.log(`Updating duration for ${trackInState.songName}: ${duration}`);
         try {
-          // Update the duration in the database
+          // Update the duration in the database, ensuring it is an integer
           await audioService.updateAudioFile(trackInState.$id, { duration });
           // Note: The change will propagate via real-time updates, so no local state change is needed here.
         } catch (error) {

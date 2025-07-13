@@ -12,9 +12,7 @@ type TabType = 'home' | 'announcements' | 'profile';
 
 export function UserDashboard() {
   const [activeTab, setActiveTab] = useState<TabType>('home');
-  const { user, logout, updateUserName } = useAuth();
-  const [isEditing, setIsEditing] = useState(false);
-  const [newName, setNewName] = useState(user?.name || '');
+  const { user, logout } = useAuth();
 
   // Background audio that persists across all tabs
   const backgroundAudio = useBackgroundAudio();

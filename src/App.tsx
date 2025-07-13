@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { StreamProvider } from './contexts/StreamContext';
@@ -11,10 +12,13 @@ import { AdminDashboard } from './components/admin/AdminDashboard';
 function AppRoutes() {
   const { user, isLoading } = useAuth();
   const [showLoginModal, setShowLoginModal] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
-    // This effect can handle initial route checks if needed
-  }, [user]);
+    if (user) {
+      navigate(user.role === 'admin' ? '/admin' : '/dashboard', { replace: true });
+    }
+  }, [user, navigate]);
 
   const handleGetStart = () => {
     if (user) return;

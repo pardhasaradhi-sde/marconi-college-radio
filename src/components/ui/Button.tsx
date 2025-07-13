@@ -1,12 +1,12 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { DivideIcon as LucideIcon } from 'lucide-react';
+import { LucideProps } from 'lucide-react';
 
 interface ButtonProps {
   children: React.ReactNode;
   variant?: 'primary' | 'secondary' | 'ghost' | 'danger';
   size?: 'sm' | 'md' | 'lg';
-  icon?: LucideIcon;
+  icon?: React.ComponentType<LucideProps>;
   iconPosition?: 'left' | 'right';
   disabled?: boolean;
   className?: string;
